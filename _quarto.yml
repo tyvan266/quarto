@@ -1,0 +1,23 @@
+project:
+  type: website
+  output-dir: docs 
+
+website:
+  title: "Data blogging using Quarto"
+  description: "Testing a blog"
+  navbar:
+    right:
+      - text: blog
+        href: blog.qmd
+      - about.qmd
+      - icon: github
+        href: https://github.com/tyvan266
+      - icon: twitter
+        href: https://twitter.com
+format:
+  html:
+    theme: theme.scss
+    css: styles.css
+
+editor: visual
+
