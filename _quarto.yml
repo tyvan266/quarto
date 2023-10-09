@@ -3,11 +3,11 @@ project:
   output-dir: docs 
 
 website:
-  title: "Data blogging using Quarto"
-  description: "Testing a blog"
+  title: "Learning to Sieve Data"
+  description: "Another blog"
   navbar:
     right:
-      - text: blog
+      - text: Posts 
         href: blog.qmd
       - index.qmd
       - icon: github
@@ -16,7 +16,7 @@ website:
         href: https://twitter.com
 format:
   html:
-    theme: theme.scss
+    theme: minty
     css: styles.css
 
 editor: visual

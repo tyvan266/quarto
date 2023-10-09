@@ -15,4 +15,4 @@ about:
       href: https://github.com
 ---
 
-About this blog: Programming and data management in R 
+A collection of posts on data management principles using R for the aspiring programmer.
