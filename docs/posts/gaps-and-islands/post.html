@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.433">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2032-10-04">
+<meta name="description" content="Also known as the overlapping-date-ranges problem, where we study duration data to identify coverage intervals (or, holes)">
+
+<title>Learning to Sieve Data - The Gaps and Islands Problem</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+<script src="../../site_libs/kePrint-0.0.1/kePrint.js"></script>
+<link href="../../site_libs/lightable-0.0.1/lightable.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">Learning to Sieve Data</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../blog.html" rel="" target="">
+ <span class="menu-text">Posts</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html" rel="" target="">
+ <span class="menu-text">About</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/tyvan266" rel="" target=""><i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://twitter.com" rel="" target=""><i class="bi bi-twitter" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">The Gaps and Islands Problem</h1>
+                  <div>
+        <div class="description">
+          Also known as the overlapping-date-ranges problem, where we study duration data to identify coverage intervals (or, holes)
+        </div>
+      </div>
+                </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">October 4, 2032</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        
+    </div>
+<!-- main -->
+<main class="content quarto-banner-title-block page-columns page-full" id="quarto-document-content">
+
+
+
+
+<section id="bare-bones-problem-formulation" class="level1 page-columns page-full">
+<h1>Bare-bones problem formulation</h1>
+<p>The <strong>gaps and islands</strong> problem arises from analyzing duration data as commonly captured in databases. Duration data (or date ranges data) are individual <em>events</em> recorded with a <em>start</em> datetime and <em>end</em> datetime. Rows in the table correspond to unique events (or activity times) that some individual is experiencing or undergoing. As individuals (ID) may have one or more event activity, such duration data are often stored in <em>long-form</em> as date ranges.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>For simplicity, we assume only one type of event under study — the data can be generalized to include an event-type field.</p>
+</div>
+</div>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(kableExtra)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">12345</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 10 individuals</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>ID <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 3 to 7 events per person </span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>n_events <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="dv">3</span><span class="sc">:</span><span class="dv">7</span>, <span class="dv">10</span>, <span class="at">replace =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>duration_data <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">ID =</span> <span class="fu">rep</span>(ID, n_events)) <span class="sc">|&gt;</span> </span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">start_date =</span> </span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>      <span class="fu">sample</span>(<span class="fu">seq</span>(<span class="fu">as.Date</span>(<span class="st">'2022-01-01'</span>), <span class="fu">as.Date</span>(<span class="st">'2022-12-31'</span>), <span class="at">by =</span> <span class="st">"day"</span>), <span class="fu">n</span>(), <span class="at">replace =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 3 days - 2 months episodes </span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">end_date =</span> start_date <span class="sc">+</span> <span class="fu">sample</span>(<span class="dv">3</span><span class="sc">:</span><span class="dv">60</span>, <span class="fu">n</span>(), <span class="at">replace =</span> <span class="cn">TRUE</span>)   </span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(ID, start_date) <span class="sc">|&gt;</span> </span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(ID) <span class="sc">|&gt;</span> </span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">eventID =</span> <span class="fu">row_number</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>For example:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(duration_data, <span class="at">n=</span><span class="dv">15</span>) <span class="sc">|&gt;</span> <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;" data-quarto-table-cell-role="th">ID</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">start_date</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">end_date</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">eventID</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">2022-02-09</td>
+<td style="text-align: left;">2022-03-06</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">2022-07-31</td>
+<td style="text-align: left;">2022-08-09</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">2022-09-14</td>
+<td style="text-align: left;">2022-11-10</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">2022-10-13</td>
+<td style="text-align: left;">2022-11-10</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">2022-10-21</td>
+<td style="text-align: left;">2022-11-23</td>
+<td style="text-align: right;">5</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-01-12</td>
+<td style="text-align: left;">2022-02-20</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-01-14</td>
+<td style="text-align: left;">2022-02-08</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-09-16</td>
+<td style="text-align: left;">2022-11-03</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-11-24</td>
+<td style="text-align: left;">2022-12-11</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">2022-01-16</td>
+<td style="text-align: left;">2022-01-23</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">2022-03-21</td>
+<td style="text-align: left;">2022-05-05</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">2022-04-16</td>
+<td style="text-align: left;">2022-05-23</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">2022-05-21</td>
+<td style="text-align: left;">2022-06-04</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">2022-05-28</td>
+<td style="text-align: left;">2022-06-23</td>
+<td style="text-align: right;">5</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">2022-07-11</td>
+<td style="text-align: left;">2022-08-08</td>
+<td style="text-align: right;">6</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>To reveal the code how to simulate the demo data, click the <code>Code</code> text to expand above.</p>
+</div>
+</div>
+<p>Here, individual-1 experiences 5 event episodes (5 <code>eventID</code>s), with the first one occurring on 2/9 and lasting for 25 days until 3/6. But observe that <code>eventID=4</code> <strong>overlaps</strong> with <code>eventID=5</code> for individual-1, where event 5 beginning on 10/21 starts <em>before</em> event 4 has ended on 11/10.</p>
+<section id="visualization" class="level2 page-columns page-full">
+<h2 class="anchored" data-anchor-id="visualization">Visualization</h2>
+<p>Describing the patterns visually is useful. We plot all individual date ranges colored by individual ID, adding a <code>position_dodge</code> parameter so overlaps are revealed instead of lying right on top one another.</p>
+<div class="cell page-columns page-full">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(duration_data <span class="sc">|&gt;</span> <span class="fu">filter</span>(ID <span class="sc">&lt;=</span> <span class="dv">5</span>),</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">y =</span> <span class="fu">factor</span>(ID), <span class="at">xmin =</span> start_date, <span class="at">xmax =</span> end_date, <span class="at">color =</span> <span class="fu">factor</span>(ID))) <span class="sc">+</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_linerange</span>(<span class="at">position =</span> <span class="fu">position_dodge2</span>(<span class="at">width =</span> .<span class="dv">5</span>), <span class="at">linewidth =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>() <span class="sc">+</span> </span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Start/ End Dates"</span>) <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">"Individual ID"</span>) <span class="sc">+</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_date</span>(<span class="at">date_breaks =</span> <span class="st">"1 month"</span>) <span class="sc">+</span> </span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">16</span>, <span class="at">angle =</span> <span class="dv">45</span>),</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">16</span>),</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title.x =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">24</span>),</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">24</span>),</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">'none'</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display page-columns page-full">
+<div class="quarto-figure quarto-figure-center page-columns page-full">
+<figure class="figure page-columns page-full">
+<p><img src="post_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="1440"></p>
+<figcaption class="figure-caption margin-caption">Duration patterns by subject</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="what-do-we-wish-to-solve-for" class="level2">
+<h2 class="anchored" data-anchor-id="what-do-we-wish-to-solve-for">What do we wish to solve for?</h2>
+<p>Given the set-up, what is our goal state? Or, how do we want to collapse the data? Our <em>input data</em> is structured as one row per event interval (date range) per person. The desired <em>output data</em> is one row per <strong>coverage interval</strong> per person. By coverage, we mean a continuous block of time, defined by a start date and end date, during which the individual is experience some event (perhaps more than one).</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Coverage intervals are referred to as <strong>islands</strong>. In-between time periods when there are no events occurring are called <strong>gaps</strong> (holes).</p>
+</div>
+</div>
+<p>For our demo data, individual-2 has 4 event intervals, but just 3 coverage intervals: they are experiencing some event between</p>
+<ol type="1">
+<li>2022-01-12 through 2022-02-08 (where event 2 completely overlaps and occurs within the duration of event 1)</li>
+<li>2022-09-16 through 2022-11-03 (duration fo event 3)</li>
+<li>2022-11-24 through 2022-12-11 (duration of last event, number 4)</li>
+</ol>
+<p>Hence, our desired output table will comprise 3 rows for individual 2, with start and end times are described above for each coverage interval. Likewise, by visual inspection, individual 3, who experienced 6 events, will have only 3 coverage intervals as well, with one particular long coverage interval of back-to-back events beginning on 2022-03-21 and finally abating on 2022-06-23.</p>
+</section>
+<section id="application-in-medicine" class="level2">
+<h2 class="anchored" data-anchor-id="application-in-medicine">Application in Medicine</h2>
+<p>Examining the <strong>gaps and islands</strong> solution to your data can reveal hidden assumptions about data processes or quality issues you might not be aware of. For example, perhaps certain overlap patterns violate assumptions about event frequencies, or some duration lengths are not physically possible. Typically, the data captured does not reflect the complete story.</p>
+<p>Consider medical databases housing patient medication prescriptions. The table captures <code>PatientID</code>, <code>DispensedDate</code>, and <code>DaysSupply</code>, from which an <code>EndDate</code> is derived representing date of supply depletion. The data as entered by pharmacists or business administrators for billing purposes or inventory management is only one part of the story, especially if our goal is to understand <strong>how</strong> patients are treated.</p>
+<p>For example, suppose we observe multiple overlapping prescriptions for the same medication type (overlapping date ranges), but perhaps differing dose levels. It is not clear whether the patient has been <em>instructed</em> to take both prescriptions simultaneously (effective dose increase), or perhaps to switch to the lower dose before finishing the other prescription. <strong>We have missing contextual information!</strong> And, if examine overlapping date ranges among <em>different</em> medication types, we may find new or surprising treatment regimes warranting investigation.</p>
+<p>If we <strong>know</strong> what we see is impossible, and we have high assurance of data validity and that they were not entered erroneously, we can learn even more. Perhaps it turns out a subset of prescriptions were <em>returned-to-stock</em> and never dispensed to the patient, requiring a check on another data field that we were not aware was being captured! With data in the wild, as we’re removed further away from the source (<strong>data origination</strong>), incomplete code-books, inaccurate code-books, or non-existent code-books are often the norm.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Unless we already know what to look for, generalizing how we describe exposure duration patterns — as with the <strong>gaps and islands</strong> formulation — can help reveal new information requiring follow-up.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="the-gaps-and-islands-algorithm" class="level1 page-columns page-full">
+<h1>The Gaps-and-Islands Algorithm</h1>
+<p>Now we present the algorithm to solve the <strong>gaps and islands</strong> problem. To proceed systematically, we order the data by ID and ascending start dates of event times. For each new event starting (from left to right) we want to know does this event overlap with the previous one? That is, does it begin before the previous one has ended? If not, it <em>may</em> start a new chain (island).</p>
+<p>But checking against the immediate previous event is not enough — potentially, there may be even earlier overlapping events with end times exceeding some or all of the subsequent events. Then the current event under consideration forms the start of a new island only if begins past the <strong>maximum</strong> end times over all prior events.</p>
+<p>We can give grouping identifiers to those event intervals (date ranges) forming a unique island (events belonging to the same island having the same identifier). The trick is to use an <strong>accumulator</strong> over the <em>new island start</em> flag, because it will only increment when starting a new island.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="annotated-cell-4"><pre class="sourceCode r code-annotation-code code-with-copy code-annotated"><code class="sourceCode r"><span id="annotated-cell-4-1"><a href="#annotated-cell-4-1" aria-hidden="true" tabindex="-1"></a>gaps_and_islands <span class="ot">&lt;-</span> </span>
+<span id="annotated-cell-4-2"><a href="#annotated-cell-4-2" aria-hidden="true" tabindex="-1"></a>duration_data <span class="sc">|&gt;</span> </span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-4" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-4-3" class="code-annotation-target"><a href="#annotated-cell-4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(ID, start_date) <span class="sc">|&gt;</span></span>
+<span id="annotated-cell-4-4"><a href="#annotated-cell-4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(ID) <span class="sc">|&gt;</span></span>
+<span id="annotated-cell-4-5"><a href="#annotated-cell-4-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-4" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-4-6" class="code-annotation-target"><a href="#annotated-cell-4-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">prev_end      =</span> <span class="fu">if_else</span>(eventID <span class="sc">==</span> <span class="dv">1</span>, end_date, <span class="fu">lag</span>(end_date, <span class="dv">1</span>)),</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-4" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-4-7" class="code-annotation-target"><a href="#annotated-cell-4-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">max_prior_end =</span> <span class="fu">as.Date</span>(<span class="fu">cummax</span>(<span class="fu">as.numeric</span>(prev_end))),</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-4" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-4-8" class="code-annotation-target"><a href="#annotated-cell-4-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">new_island    =</span> start_date <span class="sc">&gt;</span> max_prior_end,</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-4" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-4-9" class="code-annotation-target"><a href="#annotated-cell-4-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">coverageID    =</span> <span class="fu">cumsum</span>(new_island)</span>
+<span id="annotated-cell-4-10"><a href="#annotated-cell-4-10" aria-hidden="true" tabindex="-1"></a>  ) </span>
+<span id="annotated-cell-4-11"><a href="#annotated-cell-4-11" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="annotated-cell-4-12"><a href="#annotated-cell-4-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-4-13"><a href="#annotated-cell-4-13" aria-hidden="true" tabindex="-1"></a>gaps_and_islands <span class="sc">|&gt;</span></span>
+<span id="annotated-cell-4-14"><a href="#annotated-cell-4-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate_if</span>(is.Date, <span class="sc">~</span> <span class="fu">format</span>(.x, <span class="st">'%m/%d'</span>)) <span class="sc">|&gt;</span> </span>
+<span id="annotated-cell-4-15"><a href="#annotated-cell-4-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(<span class="at">n=</span><span class="dv">15</span>) <span class="sc">|&gt;</span> <span class="fu">kable</span>()</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-annotation">
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-4" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-4" data-code-annotation="1" data-code-lines="3,4">Proceed left to right systematically (beginning with earliest events). All computations are done <strong>within</strong> individual</span>
+</dd>
+<dt data-target-cell="annotated-cell-4" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-4" data-code-annotation="2" data-code-lines="6">Get the prior event end date. By convention, use the current end if it is the very first event</span>
+</dd>
+<dt data-target-cell="annotated-cell-4" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-4" data-code-annotation="3" data-code-lines="7">Maximum over all prior end times <em>relative</em> to the current event — but excluding the current interval. Note <code>cummax</code> function does not work on <em>datetypes</em> directly</span>
+</dd>
+<dt data-target-cell="annotated-cell-4" data-target-annotation="4">4</dt>
+<dd>
+<span data-code-cell="annotated-cell-4" data-code-annotation="4" data-code-lines="8">New island indicator</span>
+</dd>
+<dt data-target-cell="annotated-cell-4" data-target-annotation="5">5</dt>
+<dd>
+<span data-code-cell="annotated-cell-4" data-code-annotation="5" data-code-lines="9">Accumulator trick to assign island IDs to each date range <strong>within</strong> individual</span>
+</dd>
+</dl>
+</div>
+<div class="cell-output-display">
+<table data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;" data-quarto-table-cell-role="th">ID</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">start_date</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">end_date</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">eventID</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">prev_end</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">max_prior_end</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">new_island</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">coverageID</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">02/09</td>
+<td style="text-align: left;">03/06</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">03/06</td>
+<td style="text-align: left;">03/06</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">07/31</td>
+<td style="text-align: left;">08/09</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">03/06</td>
+<td style="text-align: left;">03/06</td>
+<td style="text-align: left;">TRUE</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">09/14</td>
+<td style="text-align: left;">11/10</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">08/09</td>
+<td style="text-align: left;">08/09</td>
+<td style="text-align: left;">TRUE</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">10/13</td>
+<td style="text-align: left;">11/10</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">11/10</td>
+<td style="text-align: left;">11/10</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">10/21</td>
+<td style="text-align: left;">11/23</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: left;">11/10</td>
+<td style="text-align: left;">11/10</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">01/12</td>
+<td style="text-align: left;">02/20</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">02/20</td>
+<td style="text-align: left;">02/20</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">01/14</td>
+<td style="text-align: left;">02/08</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">02/20</td>
+<td style="text-align: left;">02/20</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">09/16</td>
+<td style="text-align: left;">11/03</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">02/08</td>
+<td style="text-align: left;">02/20</td>
+<td style="text-align: left;">TRUE</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">11/24</td>
+<td style="text-align: left;">12/11</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">11/03</td>
+<td style="text-align: left;">11/03</td>
+<td style="text-align: left;">TRUE</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">01/16</td>
+<td style="text-align: left;">01/23</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">01/23</td>
+<td style="text-align: left;">01/23</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">03/21</td>
+<td style="text-align: left;">05/05</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">01/23</td>
+<td style="text-align: left;">01/23</td>
+<td style="text-align: left;">TRUE</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">04/16</td>
+<td style="text-align: left;">05/23</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">05/05</td>
+<td style="text-align: left;">05/05</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">05/21</td>
+<td style="text-align: left;">06/04</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">05/23</td>
+<td style="text-align: left;">05/23</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">05/28</td>
+<td style="text-align: left;">06/23</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: left;">06/04</td>
+<td style="text-align: left;">06/04</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">07/11</td>
+<td style="text-align: left;">08/08</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: left;">06/23</td>
+<td style="text-align: left;">06/23</td>
+<td style="text-align: left;">TRUE</td>
+<td style="text-align: right;">2</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Within individual, we start counting the first island at 0</p>
+</div>
+</div>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Important
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>As implemented here, a coverage interval is identified uniquely from the combination of <em>both</em> <code>coverageID</code> <strong>and</strong> individual <code>ID</code>.</p>
+</div>
+</div>
+<p>Finally, we collapse down to unique coverage intervals by summarizing over individual and their <code>coverageID</code>s:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>islands <span class="ot">&lt;-</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>gaps_and_islands <span class="sc">|&gt;</span> </span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(ID, coverageID) <span class="sc">|&gt;</span> </span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">start_date =</span> <span class="fu">first</span>(start_date),</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">end_date   =</span> <span class="fu">max</span>(end_date) </span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  )  </span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>islands <span class="sc">|&gt;</span> </span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(<span class="at">n=</span><span class="dv">10</span>) <span class="sc">|&gt;</span> <span class="fu">kable</span>() <span class="sc">|&gt;</span> <span class="fu">kable_styling</span>(<span class="at">full_width=</span><span class="cn">FALSE</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">column_spec</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>, <span class="at">width =</span> <span class="st">"18em"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="table table-sm table-striped small" data-quarto-postprocess="true">
+<thead>
+<tr class="header">
+<th style="text-align: right;" data-quarto-table-cell-role="th">ID</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">coverageID</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">start_date</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">end_date</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right; width: 18em;">1</td>
+<td style="text-align: right; width: 18em;">0</td>
+<td style="text-align: left; width: 18em;">2022-02-09</td>
+<td style="text-align: left; width: 18em;">2022-03-06</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; width: 18em;">1</td>
+<td style="text-align: right; width: 18em;">1</td>
+<td style="text-align: left; width: 18em;">2022-07-31</td>
+<td style="text-align: left; width: 18em;">2022-08-09</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; width: 18em;">1</td>
+<td style="text-align: right; width: 18em;">2</td>
+<td style="text-align: left; width: 18em;">2022-09-14</td>
+<td style="text-align: left; width: 18em;">2022-11-23</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; width: 18em;">2</td>
+<td style="text-align: right; width: 18em;">0</td>
+<td style="text-align: left; width: 18em;">2022-01-12</td>
+<td style="text-align: left; width: 18em;">2022-02-20</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; width: 18em;">2</td>
+<td style="text-align: right; width: 18em;">1</td>
+<td style="text-align: left; width: 18em;">2022-09-16</td>
+<td style="text-align: left; width: 18em;">2022-11-03</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; width: 18em;">2</td>
+<td style="text-align: right; width: 18em;">2</td>
+<td style="text-align: left; width: 18em;">2022-11-24</td>
+<td style="text-align: left; width: 18em;">2022-12-11</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; width: 18em;">3</td>
+<td style="text-align: right; width: 18em;">0</td>
+<td style="text-align: left; width: 18em;">2022-01-16</td>
+<td style="text-align: left; width: 18em;">2022-01-23</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; width: 18em;">3</td>
+<td style="text-align: right; width: 18em;">1</td>
+<td style="text-align: left; width: 18em;">2022-03-21</td>
+<td style="text-align: left; width: 18em;">2022-06-23</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; width: 18em;">3</td>
+<td style="text-align: right; width: 18em;">2</td>
+<td style="text-align: left; width: 18em;">2022-07-11</td>
+<td style="text-align: left; width: 18em;">2022-08-08</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; width: 18em;">4</td>
+<td style="text-align: right; width: 18em;">0</td>
+<td style="text-align: left; width: 18em;">2022-03-01</td>
+<td style="text-align: left; width: 18em;">2022-04-21</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+<p>Let’s visualize our solution (proof by picture)</p>
+<div class="cell page-columns page-full">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># start with original date range data </span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(duration_data <span class="sc">|&gt;</span> <span class="fu">filter</span>(ID <span class="sc">&lt;=</span> <span class="dv">5</span>),</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">y =</span> <span class="fu">factor</span>(ID), <span class="at">xmin =</span> start_date, <span class="at">xmax =</span> end_date, <span class="at">color =</span> <span class="fu">factor</span>(ID))) <span class="sc">+</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_linerange</span>(<span class="at">position =</span> <span class="fu">position_dodge2</span>(<span class="at">width =</span> .<span class="dv">5</span>), <span class="at">linewidth =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># overlay the islands </span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_linerange</span>(<span class="at">data =</span> islands <span class="sc">|&gt;</span> <span class="fu">filter</span>(ID <span class="sc">&lt;=</span> <span class="dv">5</span>),</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>                 <span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">y =</span> <span class="fu">factor</span>(ID), <span class="at">xmin =</span> start_date, <span class="at">xmax =</span> end_date),</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>                 <span class="at">color =</span> <span class="st">"grey"</span>, <span class="at">alpha =</span> .<span class="dv">8</span>, <span class="at">linewidth =</span> <span class="dv">5</span>) <span class="sc">+</span> </span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>() <span class="sc">+</span> </span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Start/ End Dates"</span>) <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">"Individual ID"</span>) <span class="sc">+</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_date</span>(<span class="at">date_breaks =</span> <span class="st">"1 month"</span>) <span class="sc">+</span> </span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">16</span>, <span class="at">angle =</span> <span class="dv">45</span>),</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">16</span>),</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title.x =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">24</span>),</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">24</span>),</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">'none'</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display page-columns page-full">
+<div class="quarto-figure quarto-figure-center page-columns page-full">
+<figure class="figure page-columns page-full">
+<p><img src="post_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="1440"></p>
+<figcaption class="figure-caption margin-caption">Duration patterns by subject</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<section id="what-about-holes" class="level2">
+<h2 class="anchored" data-anchor-id="what-about-holes">What about holes?</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>holes <span class="ot">&lt;-</span> islands <span class="sc">|&gt;</span> </span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(ID) <span class="sc">|&gt;</span> </span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(ID, start_date) <span class="sc">|&gt;</span> </span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">hole_start_date =</span> end_date,</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">hole_end_date   =</span> <span class="fu">lead</span>(start_date, <span class="dv">1</span>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="references" class="level1">
+<h1>References</h1>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
