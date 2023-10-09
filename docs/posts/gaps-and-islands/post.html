@@ -351,7 +351,7 @@ Tip
 <p>To reveal the code how to simulate the demo data, click the <code>Code</code> text to expand above.</p>
 </div>
 </div>
-<p>Here, <code>ID</code> 1 experiences 5 distinct<code>eventID</code>s, with the first one occurring on 2/9 and lasting for 25 days until 3/6. The key observation is that <code>eventID</code> 4 <strong>overlaps</strong> with <code>eventID</code> 5 within <code>ID</code> 1, where event 5 beginning on 10/21 starts <em>before</em> event 4 has ended on 11/10.</p>
+<p>Here, <code>ID</code> 1 experiences 5 distinct <code>eventID</code>s, with the first one occurring on 2/9 and lasting for 25 days until 3/6. The key observation is that <code>eventID</code> 4 <strong>overlaps</strong> with <code>eventID</code> 5 within <code>ID</code> 1, where event 5 beginning on 10/21 starts <em>before</em> event 4 has ended on 11/10.</p>
 <section id="visualization" class="level2 page-columns page-full">
 <h2 class="anchored" data-anchor-id="visualization">Visualization</h2>
 <p>Visualizing the date ranges of event occurrences is useful. We plot all individual event date ranges colored by <code>ID</code>, supplying a <code>position_dodge</code> so overlaps are revealed (instead of lying right on top one another).</p>
@@ -444,36 +444,39 @@ Note
 <a class="code-annotation-anchor" data-target-cell="annotated-cell-4" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-4-7" class="code-annotation-target"><a href="#annotated-cell-4-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">max_prior_end =</span> <span class="fu">as.Date</span>(<span class="fu">cummax</span>(<span class="fu">as.numeric</span>(prev_end))),</span>
 <a class="code-annotation-anchor" data-target-cell="annotated-cell-4" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-4-8" class="code-annotation-target"><a href="#annotated-cell-4-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">new_island    =</span> start_date <span class="sc">&gt;</span> max_prior_end,</span>
 <a class="code-annotation-anchor" data-target-cell="annotated-cell-4" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-4-9" class="code-annotation-target"><a href="#annotated-cell-4-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">coverageID    =</span> <span class="fu">cumsum</span>(new_island)</span>
-<span id="annotated-cell-4-10"><a href="#annotated-cell-4-10" aria-hidden="true" tabindex="-1"></a>  ) </span>
-<span id="annotated-cell-4-11"><a href="#annotated-cell-4-11" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="annotated-cell-4-12"><a href="#annotated-cell-4-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-4-13"><a href="#annotated-cell-4-13" aria-hidden="true" tabindex="-1"></a>gaps_and_islands <span class="sc">|&gt;</span></span>
-<span id="annotated-cell-4-14"><a href="#annotated-cell-4-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate_if</span>(is.Date, <span class="sc">~</span> <span class="fu">format</span>(.x, <span class="st">'%m/%d'</span>)) <span class="sc">|&gt;</span> </span>
-<span id="annotated-cell-4-15"><a href="#annotated-cell-4-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(<span class="at">n=</span><span class="dv">15</span>) <span class="sc">|&gt;</span> <span class="fu">kable</span>()</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="annotated-cell-4-10"><a href="#annotated-cell-4-10" aria-hidden="true" tabindex="-1"></a>  ) </span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-annotation">
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-4" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-lines="3,4" data-code-cell="annotated-cell-4" data-code-annotation="1">Proceed left to right systematically (beginning with earliest events). All computations are done <strong>within</strong> individual</span>
+<span data-code-cell="annotated-cell-4" data-code-annotation="1" data-code-lines="3,4">Proceed left to right systematically (beginning with earliest events). All computations are done <strong>within</strong> individual</span>
 </dd>
 <dt data-target-cell="annotated-cell-4" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-lines="6" data-code-cell="annotated-cell-4" data-code-annotation="2">Get the prior event end date. By convention, use the current end if it is the very first event</span>
+<span data-code-cell="annotated-cell-4" data-code-annotation="2" data-code-lines="6">Get the prior event end date. By convention, use the current end if it is the very first event</span>
 </dd>
 <dt data-target-cell="annotated-cell-4" data-target-annotation="3">3</dt>
 <dd>
-<span data-code-lines="7" data-code-cell="annotated-cell-4" data-code-annotation="3">Maximum over all prior end times <em>relative</em> to the current event — but excluding the current interval. Note <code>cummax</code> function does not work on <em>datetypes</em> directly</span>
+<span data-code-cell="annotated-cell-4" data-code-annotation="3" data-code-lines="7">Maximum over all prior end times <em>relative</em> to the current event — but excluding the current interval. Note <code>cummax</code> function does not work on <em>datetypes</em> directly</span>
 </dd>
 <dt data-target-cell="annotated-cell-4" data-target-annotation="4">4</dt>
 <dd>
-<span data-code-lines="8" data-code-cell="annotated-cell-4" data-code-annotation="4">New island indicator</span>
+<span data-code-cell="annotated-cell-4" data-code-annotation="4" data-code-lines="8">New island indicator</span>
 </dd>
 <dt data-target-cell="annotated-cell-4" data-target-annotation="5">5</dt>
 <dd>
-<span data-code-lines="9" data-code-cell="annotated-cell-4" data-code-annotation="5">Accumulator trick to assign island IDs to each date range <strong>within</strong> individual</span>
+<span data-code-cell="annotated-cell-4" data-code-annotation="5" data-code-lines="9">Accumulator trick to assign island IDs to each date range <strong>within</strong> individual</span>
 </dd>
 </dl>
 </div>
+</div>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>gaps_and_islands <span class="sc">|&gt;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate_if</span>(is.Date, <span class="sc">~</span> <span class="fu">format</span>(.x, <span class="st">'%m/%d'</span>)) <span class="sc">|&gt;</span> </span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(<span class="at">n=</span><span class="dv">15</span>) <span class="sc">|&gt;</span> <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output-display">
 <table data-quarto-postprocess="true" class="table table-sm table-striped small">
 <thead>
@@ -673,18 +676,21 @@ Important
 </div>
 <p>Finally, we collapse down to unique coverage intervals by summarizing over individual and their <code>coverageID</code>s:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>islands <span class="ot">&lt;-</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>gaps_and_islands <span class="sc">|&gt;</span> </span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(ID, coverageID) <span class="sc">|&gt;</span> </span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">start_date =</span> <span class="fu">first</span>(start_date),</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">end_date   =</span> <span class="fu">max</span>(end_date) </span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  )  </span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>islands <span class="sc">|&gt;</span> </span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(<span class="at">n=</span><span class="dv">10</span>) <span class="sc">|&gt;</span> <span class="fu">kable</span>() <span class="sc">|&gt;</span> <span class="fu">kable_styling</span>(<span class="at">full_width=</span><span class="cn">FALSE</span>) <span class="sc">|&gt;</span> </span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">column_spec</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>, <span class="at">width =</span> <span class="st">"20em"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>islands <span class="ot">&lt;-</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>gaps_and_islands <span class="sc">|&gt;</span> </span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(ID, coverageID) <span class="sc">|&gt;</span> </span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">start_date =</span> <span class="fu">first</span>(start_date),</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">end_date   =</span> <span class="fu">max</span>(end_date) </span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  )  </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>islands <span class="sc">|&gt;</span> </span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(<span class="at">n=</span><span class="dv">10</span>) <span class="sc">|&gt;</span> <span class="fu">kable</span>() <span class="sc">|&gt;</span> <span class="fu">kable_styling</span>(<span class="at">full_width=</span><span class="cn">FALSE</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">column_spec</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>, <span class="at">width =</span> <span class="st">"20em"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output-display">
 <table class="table table-sm table-striped small" data-quarto-postprocess="true">
 <thead>
@@ -766,33 +772,33 @@ Important
 <div class="cell page-columns page-full">
 <details>
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># start with original date range data </span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(duration_data <span class="sc">|&gt;</span> <span class="fu">filter</span>(ID <span class="sc">&lt;=</span> <span class="dv">5</span>),</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">y =</span> <span class="fu">factor</span>(ID), <span class="at">xmin =</span> start_date, <span class="at">xmax =</span> end_date, <span class="at">color =</span> <span class="fu">factor</span>(ID))) <span class="sc">+</span></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_linerange</span>(<span class="at">position =</span> <span class="fu">position_dodge2</span>(<span class="at">width =</span> .<span class="dv">5</span>), <span class="at">linewidth =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># overlay the islands </span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_linerange</span>(<span class="at">data =</span> islands <span class="sc">|&gt;</span> <span class="fu">filter</span>(ID <span class="sc">&lt;=</span> <span class="dv">5</span>),</span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>                 <span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">y =</span> <span class="fu">factor</span>(ID), <span class="at">xmin =</span> start_date, <span class="at">xmax =</span> end_date),</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>                 <span class="at">color =</span> <span class="st">"grey"</span>, <span class="at">alpha =</span> .<span class="dv">8</span>, <span class="at">linewidth =</span> <span class="dv">5</span>) <span class="sc">+</span> </span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>() <span class="sc">+</span> </span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Start/ End Dates"</span>) <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">"Individual ID"</span>) <span class="sc">+</span></span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_date</span>(<span class="at">date_breaks =</span> <span class="st">"1 month"</span>) <span class="sc">+</span> </span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
-<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">16</span>, <span class="at">angle =</span> <span class="dv">45</span>),</span>
-<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">16</span>),</span>
-<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title.x =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">24</span>),</span>
-<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">24</span>),</span>
-<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">'none'</span></span>
-<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co"># start with original date range data </span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(duration_data <span class="sc">|&gt;</span> <span class="fu">filter</span>(ID <span class="sc">&lt;=</span> <span class="dv">5</span>),</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">y =</span> <span class="fu">factor</span>(ID), <span class="at">xmin =</span> start_date, <span class="at">xmax =</span> end_date, <span class="at">color =</span> <span class="fu">factor</span>(ID))) <span class="sc">+</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_linerange</span>(<span class="at">position =</span> <span class="fu">position_dodge2</span>(<span class="at">width =</span> .<span class="dv">5</span>), <span class="at">linewidth =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># overlay the islands </span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_linerange</span>(<span class="at">data =</span> islands <span class="sc">|&gt;</span> <span class="fu">filter</span>(ID <span class="sc">&lt;=</span> <span class="dv">5</span>),</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>                 <span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">y =</span> <span class="fu">factor</span>(ID), <span class="at">xmin =</span> start_date, <span class="at">xmax =</span> end_date),</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>                 <span class="at">color =</span> <span class="st">"grey"</span>, <span class="at">alpha =</span> .<span class="dv">8</span>, <span class="at">linewidth =</span> <span class="dv">5</span>) <span class="sc">+</span> </span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>() <span class="sc">+</span> </span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Start/ End Dates"</span>) <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">"Individual ID"</span>) <span class="sc">+</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_date</span>(<span class="at">date_breaks =</span> <span class="st">"1 month"</span>) <span class="sc">+</span> </span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">16</span>, <span class="at">angle =</span> <span class="dv">45</span>),</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">16</span>),</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title.x =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">24</span>),</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">24</span>),</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">'none'</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display page-columns page-full">
 <div class="quarto-figure quarto-figure-center page-columns page-full">
 <figure class="figure page-columns page-full">
-<p><img src="post_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="1440"></p>
+<p><img src="post_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="1440"></p>
 <figcaption class="figure-caption margin-caption">Duration patterns by subject</figcaption>
 </figure>
 </div>

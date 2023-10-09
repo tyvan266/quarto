@@ -62,7 +62,7 @@ head(duration_data, n=15) |> kable()
 To reveal the code how to simulate the demo data, click the `Code` text to expand above. 
 :::
 
-  Here, `ID` 1 experiences 5 distinct`eventID`s, with the first one occurring on 2/9 and lasting for 25 days until 3/6. The key observation is that `eventID` 4 **overlaps** with `eventID` 5 within `ID` 1, where event 5 beginning on 10/21 starts *before* event 4 has ended on 11/10. 
+  Here, `ID` 1 experiences 5 distinct `eventID`s, with the first one occurring on 2/9 and lasting for 25 days until 3/6. The key observation is that `eventID` 4 **overlaps** with `eventID` 5 within `ID` 1, where event 5 beginning on 10/21 starts *before* event 4 has ended on 11/10. 
 
 
 ## Visualization 
@@ -148,13 +148,8 @@ duration_data |>
     new_island    = start_date > max_prior_end,                        # <4>
     coverageID    = cumsum(new_island)                                 # <5> 
   ) 
-  
+```  
 
-gaps_and_islands |>
-  mutate_if(is.Date, ~ format(.x, '%m/%d')) |> 
-  head(n=15) |> kable()
-
-```
 
 1. Proceed left to right systematically (beginning with earliest events). 
    All computations are done **within** individual 
@@ -164,6 +159,13 @@ gaps_and_islands |>
 4. New island indicator 
 5. Accumulator trick to assign island IDs to each date range **within** individual 
 
+```{r}
+#| code-fold: true
+gaps_and_islands |>
+  mutate_if(is.Date, ~ format(.x, '%m/%d')) |> 
+  head(n=15) |> kable()
+
+```
 
 ::: callout-note
 Within individual, we start counting the first island at 0 
@@ -184,8 +186,11 @@ gaps_and_islands |>
     start_date = first(start_date),
     end_date   = max(end_date) 
   )  
-  
+```
 
+
+```{r}
+#| code-fold: true
 islands |> 
   head(n=10) |> kable() |> kable_styling(full_width=FALSE) |> 
   column_spec(1:4, width = "20em")
