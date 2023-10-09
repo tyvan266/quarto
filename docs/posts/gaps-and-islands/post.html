@@ -185,9 +185,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 
-<section id="bare-bones-problem-formulation" class="level1 page-columns page-full">
-<h1>Bare-bones problem formulation</h1>
-<p>The <strong>gaps and islands</strong> problem arises from analyzing duration data as commonly captured in databases. Duration data (or date ranges data) are individual <em>events</em> recorded with a <em>start</em> datetime and <em>end</em> datetime. Rows in the table correspond to unique events (or activity times) that some individual is experiencing or undergoing. As individuals (ID) may have one or more event activity, such duration data are often stored in <em>long-form</em> as date ranges.</p>
+<section id="problem-formulation" class="level1 page-columns page-full">
+<h1>Problem formulation</h1>
+<p>The <strong>gaps and islands</strong> problem arises from analyzing duration data as commonly captured in databases. Duration data are <em>events</em> recorded with a <em>start</em> datetime and <em>end</em> datetime. Rows in the table correspond to unique events that someone is experiencing, or during which times the event is active. As individuals <code>ID</code> may have one or more event activity, such data are often stored in <em>long-form</em> as date ranges or <em>intervals</em>.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -351,10 +351,10 @@ Tip
 <p>To reveal the code how to simulate the demo data, click the <code>Code</code> text to expand above.</p>
 </div>
 </div>
-<p>Here, individual-1 experiences 5 event episodes (5 <code>eventID</code>s), with the first one occurring on 2/9 and lasting for 25 days until 3/6. But observe that <code>eventID=4</code> <strong>overlaps</strong> with <code>eventID=5</code> for individual-1, where event 5 beginning on 10/21 starts <em>before</em> event 4 has ended on 11/10.</p>
+<p>Here, <code>ID</code> 1 experiences 5 distinct<code>eventID</code>s, with the first one occurring on 2/9 and lasting for 25 days until 3/6. The key observation is that <code>eventID</code> 4 <strong>overlaps</strong> with <code>eventID</code> 5 within <code>ID</code> 1, where event 5 beginning on 10/21 starts <em>before</em> event 4 has ended on 11/10.</p>
 <section id="visualization" class="level2 page-columns page-full">
 <h2 class="anchored" data-anchor-id="visualization">Visualization</h2>
-<p>Describing the patterns visually is useful. We plot all individual date ranges colored by individual ID, adding a <code>position_dodge</code> parameter so overlaps are revealed instead of lying right on top one another.</p>
+<p>Visualizing the date ranges of event occurrences is useful. We plot all individual event date ranges colored by <code>ID</code>, supplying a <code>position_dodge</code> so overlaps are revealed (instead of lying right on top one another).</p>
 <div class="cell page-columns page-full">
 <details>
 <summary>Code</summary>
@@ -386,7 +386,7 @@ Tip
 </section>
 <section id="what-do-we-wish-to-solve-for" class="level2">
 <h2 class="anchored" data-anchor-id="what-do-we-wish-to-solve-for">What do we wish to solve for?</h2>
-<p>Given the set-up, what is our goal state? Or, how do we want to collapse the data? Our <em>input data</em> is structured as one row per event interval (date range) per person. The desired <em>output data</em> is one row per <strong>coverage interval</strong> per person. By coverage, we mean a continuous block of time, defined by a start date and end date, during which the individual is experience some event (perhaps more than one).</p>
+<p>Given the set-up, how do we want to collapse the data? Our <em>input data</em> is structured as one row per date range per person. The desired <em>output data</em> is one row per <strong>coverage interval</strong> per person. By coverage, we mean a continuous block of time, defined by a start date and end date, during which the individual is experiencing one or more active events.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -397,23 +397,23 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Coverage intervals are referred to as <strong>islands</strong>. In-between time periods when there are no events occurring are called <strong>gaps</strong> (holes).</p>
+<p>Coverage intervals are referred to as <strong>islands</strong>. In-between time periods when there are no events occurring (no date ranges, overlapping or otherwise) are called <strong>gaps</strong> (holes).</p>
 </div>
 </div>
-<p>For our demo data, individual-2 has 4 event intervals, but just 3 coverage intervals: they are experiencing some event between</p>
+<p>For our demo data, within <code>ID</code> 2, there are 4 <code>eventID</code>s, but just 3 coverage intervals (<strong>islands</strong>): some event is active between</p>
 <ol type="1">
-<li>2022-01-12 through 2022-02-08 (where event 2 completely overlaps and occurs within the duration of event 1)</li>
-<li>2022-09-16 through 2022-11-03 (duration fo event 3)</li>
-<li>2022-11-24 through 2022-12-11 (duration of last event, number 4)</li>
+<li>2022-01-12 through 2022-02-08 (where the date range of event 2 completely overlaps and within the duration time of event 1)</li>
+<li>2022-09-16 through 2022-11-03 (duration of <code>eventID</code> 3)</li>
+<li>2022-11-24 through 2022-12-11 (duration of last <code>eventID</code> 4)</li>
 </ol>
-<p>Hence, our desired output table will comprise 3 rows for individual 2, with start and end times are described above for each coverage interval. Likewise, by visual inspection, individual 3, who experienced 6 events, will have only 3 coverage intervals as well, with one particular long coverage interval of back-to-back events beginning on 2022-03-21 and finally abating on 2022-06-23.</p>
+<p>Hence our desired output table will comprise 3 rows for <code>ID</code> 2, with start and end times are described above for each coverage interval. Likewise, by visual inspection, <code>ID</code> 3, who experienced 6 events, will have only 3 coverage intervals as well, with one particularly long coverage interval (of back-to-back events) beginning on 2022-03-21 and finally abating on 2022-06-23.</p>
 </section>
 <section id="application-in-medicine" class="level2">
 <h2 class="anchored" data-anchor-id="application-in-medicine">Application in Medicine</h2>
-<p>Examining the <strong>gaps and islands</strong> solution to your data can reveal hidden assumptions about data processes or quality issues you might not be aware of. For example, perhaps certain overlap patterns violate assumptions about event frequencies, or some duration lengths are not physically possible. Typically, the data captured does not reflect the complete story.</p>
-<p>Consider medical databases housing patient medication prescriptions. The table captures <code>PatientID</code>, <code>DispensedDate</code>, and <code>DaysSupply</code>, from which an <code>EndDate</code> is derived representing date of supply depletion. The data as entered by pharmacists or business administrators for billing purposes or inventory management is only one part of the story, especially if our goal is to understand <strong>how</strong> patients are treated.</p>
-<p>For example, suppose we observe multiple overlapping prescriptions for the same medication type (overlapping date ranges), but perhaps differing dose levels. It is not clear whether the patient has been <em>instructed</em> to take both prescriptions simultaneously (effective dose increase), or perhaps to switch to the lower dose before finishing the other prescription. <strong>We have missing contextual information!</strong> And, if examine overlapping date ranges among <em>different</em> medication types, we may find new or surprising treatment regimes warranting investigation.</p>
-<p>If we <strong>know</strong> what we see is impossible, and we have high assurance of data validity and that they were not entered erroneously, we can learn even more. Perhaps it turns out a subset of prescriptions were <em>returned-to-stock</em> and never dispensed to the patient, requiring a check on another data field that we were not aware was being captured! With data in the wild, as we’re removed further away from the source (<strong>data origination</strong>), incomplete code-books, inaccurate code-books, or non-existent code-books are often the norm.</p>
+<p>Examining the <strong>gaps and islands</strong> solution can reveal hidden assumptions about data processes or quality issues you might not be aware of. For example, perhaps certain overlap patterns violate assumptions about event frequencies, or some duration lengths and patterns are not physically possible. Typically, the data captured does not reflect the complete story.</p>
+<p>Consider medical databases housing patient medication prescriptions. The table captures <code>PatientID</code>, <code>DispensedDate</code>, and <code>DaysSupply</code>, from which an <code>EndDate</code> is derived representing date of supply depletion relative to dispense time. The data as entered by pharmacists or business administrators for billing purposes or inventory management is only one part of the story, especially if our goal is to understand <strong>how</strong> patients are treated.</p>
+<p>For example, suppose we observe multiple overlapping prescriptions for the same medication type (overlapping date ranges), but perhaps differing dose levels. It is not clear whether the patient has been <em>instructed</em> to take both prescriptions simultaneously (effective dose increase), or perhaps to switch to the lower dose before finishing the other prescription. <strong>We have missing contextual information!</strong> And, if we observe overlapping date ranges among <em>different</em> medication types, we may find new or surprising treatment regimes warranting investigation.</p>
+<p>If we <strong>know</strong> what we see is impossible, and we have high assurance of data validity (they were not entered erroneously), we investigate further. Perhaps, it turns out a subset of prescriptions were <em>returned-to-stock</em> and were never picked up by the patient, requiring a check on another data field that we were not aware was being captured. With data in the wild, as we’re removed further away from the source of <strong>data origination</strong>, incomplete code-books, inaccurate code-books, or non-existent code-books represent the norm.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -424,16 +424,16 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Unless we already know what to look for, generalizing how we describe exposure duration patterns — as with the <strong>gaps and islands</strong> formulation — can help reveal new information requiring follow-up.</p>
+<p>Unless we already know what to look for, generalizing how we describe event patterns can help reveal new information requiring follow-up.</p>
 </div>
 </div>
 </section>
 </section>
 <section id="the-gaps-and-islands-algorithm" class="level1 page-columns page-full">
 <h1>The Gaps-and-Islands Algorithm</h1>
-<p>Now we present the algorithm to solve the <strong>gaps and islands</strong> problem. To proceed systematically, we order the data by ID and ascending start dates of event times. For each new event starting (from left to right) we want to know does this event overlap with the previous one? That is, does it begin before the previous one has ended? If not, it <em>may</em> start a new chain (island).</p>
-<p>But checking against the immediate previous event is not enough — potentially, there may be even earlier overlapping events with end times exceeding some or all of the subsequent events. Then the current event under consideration forms the start of a new island only if begins past the <strong>maximum</strong> end times over all prior events.</p>
-<p>We can give grouping identifiers to those event intervals (date ranges) forming a unique island (events belonging to the same island having the same identifier). The trick is to use an <strong>accumulator</strong> over the <em>new island start</em> flag, because it will only increment when starting a new island.</p>
+<p>Now we present the algorithm to solve the <strong>gaps and islands</strong> problem. To proceed systematically, we order the data by <code>ID</code> and ascending <code>start_date</code> of event times. For each new event beginning within <code>ID</code> (from left to right) we want to know does this event overlap with the previous one? That is, does it begin before the previous one has ended? If not, it <em>may</em> start a new chain (island).</p>
+<p>But checking against the immediate previous event is not enough — potentially, there may be even earlier overlapping events with end times exceeding some or all of the subsequent events. Then the current event under consideration forms the start of a new island only if it begins past the <strong>maximum</strong> end times over all prior events.</p>
+<p>We can give grouping identifiers to those date ranges forming a unique island (events belonging to the same island having the same identifier). The trick is to use an <strong>accumulator</strong> over the <em>new island start</em> flag, because it will only increment when starting a new island.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="annotated-cell-4"><pre class="sourceCode r code-annotation-code code-with-copy code-annotated"><code class="sourceCode r"><span id="annotated-cell-4-1"><a href="#annotated-cell-4-1" aria-hidden="true" tabindex="-1"></a>gaps_and_islands <span class="ot">&lt;-</span> </span>
 <span id="annotated-cell-4-2"><a href="#annotated-cell-4-2" aria-hidden="true" tabindex="-1"></a>duration_data <span class="sc">|&gt;</span> </span>
@@ -454,23 +454,23 @@ Note
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-4" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-cell="annotated-cell-4" data-code-lines="3,4" data-code-annotation="1">Proceed left to right systematically (beginning with earliest events). All computations are done <strong>within</strong> individual</span>
+<span data-code-lines="3,4" data-code-cell="annotated-cell-4" data-code-annotation="1">Proceed left to right systematically (beginning with earliest events). All computations are done <strong>within</strong> individual</span>
 </dd>
 <dt data-target-cell="annotated-cell-4" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-cell="annotated-cell-4" data-code-lines="6" data-code-annotation="2">Get the prior event end date. By convention, use the current end if it is the very first event</span>
+<span data-code-lines="6" data-code-cell="annotated-cell-4" data-code-annotation="2">Get the prior event end date. By convention, use the current end if it is the very first event</span>
 </dd>
 <dt data-target-cell="annotated-cell-4" data-target-annotation="3">3</dt>
 <dd>
-<span data-code-cell="annotated-cell-4" data-code-lines="7" data-code-annotation="3">Maximum over all prior end times <em>relative</em> to the current event — but excluding the current interval. Note <code>cummax</code> function does not work on <em>datetypes</em> directly</span>
+<span data-code-lines="7" data-code-cell="annotated-cell-4" data-code-annotation="3">Maximum over all prior end times <em>relative</em> to the current event — but excluding the current interval. Note <code>cummax</code> function does not work on <em>datetypes</em> directly</span>
 </dd>
 <dt data-target-cell="annotated-cell-4" data-target-annotation="4">4</dt>
 <dd>
-<span data-code-cell="annotated-cell-4" data-code-lines="8" data-code-annotation="4">New island indicator</span>
+<span data-code-lines="8" data-code-cell="annotated-cell-4" data-code-annotation="4">New island indicator</span>
 </dd>
 <dt data-target-cell="annotated-cell-4" data-target-annotation="5">5</dt>
 <dd>
-<span data-code-cell="annotated-cell-4" data-code-lines="9" data-code-annotation="5">Accumulator trick to assign island IDs to each date range <strong>within</strong> individual</span>
+<span data-code-lines="9" data-code-cell="annotated-cell-4" data-code-annotation="5">Accumulator trick to assign island IDs to each date range <strong>within</strong> individual</span>
 </dd>
 </dl>
 </div>
@@ -684,7 +684,7 @@ Important
 <span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>islands <span class="sc">|&gt;</span> </span>
 <span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(<span class="at">n=</span><span class="dv">10</span>) <span class="sc">|&gt;</span> <span class="fu">kable</span>() <span class="sc">|&gt;</span> <span class="fu">kable_styling</span>(<span class="at">full_width=</span><span class="cn">FALSE</span>) <span class="sc">|&gt;</span> </span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">column_spec</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>, <span class="at">width =</span> <span class="st">"18em"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">column_spec</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>, <span class="at">width =</span> <span class="st">"20em"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <table class="table table-sm table-striped small" data-quarto-postprocess="true">
 <thead>
@@ -697,64 +697,64 @@ Important
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: right; width: 18em;">1</td>
-<td style="text-align: right; width: 18em;">0</td>
-<td style="text-align: left; width: 18em;">2022-02-09</td>
-<td style="text-align: left; width: 18em;">2022-03-06</td>
+<td style="text-align: right; width: 20em;">1</td>
+<td style="text-align: right; width: 20em;">0</td>
+<td style="text-align: left; width: 20em;">2022-02-09</td>
+<td style="text-align: left; width: 20em;">2022-03-06</td>
 </tr>
 <tr class="even">
-<td style="text-align: right; width: 18em;">1</td>
-<td style="text-align: right; width: 18em;">1</td>
-<td style="text-align: left; width: 18em;">2022-07-31</td>
-<td style="text-align: left; width: 18em;">2022-08-09</td>
+<td style="text-align: right; width: 20em;">1</td>
+<td style="text-align: right; width: 20em;">1</td>
+<td style="text-align: left; width: 20em;">2022-07-31</td>
+<td style="text-align: left; width: 20em;">2022-08-09</td>
 </tr>
 <tr class="odd">
-<td style="text-align: right; width: 18em;">1</td>
-<td style="text-align: right; width: 18em;">2</td>
-<td style="text-align: left; width: 18em;">2022-09-14</td>
-<td style="text-align: left; width: 18em;">2022-11-23</td>
+<td style="text-align: right; width: 20em;">1</td>
+<td style="text-align: right; width: 20em;">2</td>
+<td style="text-align: left; width: 20em;">2022-09-14</td>
+<td style="text-align: left; width: 20em;">2022-11-23</td>
 </tr>
 <tr class="even">
-<td style="text-align: right; width: 18em;">2</td>
-<td style="text-align: right; width: 18em;">0</td>
-<td style="text-align: left; width: 18em;">2022-01-12</td>
-<td style="text-align: left; width: 18em;">2022-02-20</td>
+<td style="text-align: right; width: 20em;">2</td>
+<td style="text-align: right; width: 20em;">0</td>
+<td style="text-align: left; width: 20em;">2022-01-12</td>
+<td style="text-align: left; width: 20em;">2022-02-20</td>
 </tr>
 <tr class="odd">
-<td style="text-align: right; width: 18em;">2</td>
-<td style="text-align: right; width: 18em;">1</td>
-<td style="text-align: left; width: 18em;">2022-09-16</td>
-<td style="text-align: left; width: 18em;">2022-11-03</td>
+<td style="text-align: right; width: 20em;">2</td>
+<td style="text-align: right; width: 20em;">1</td>
+<td style="text-align: left; width: 20em;">2022-09-16</td>
+<td style="text-align: left; width: 20em;">2022-11-03</td>
 </tr>
 <tr class="even">
-<td style="text-align: right; width: 18em;">2</td>
-<td style="text-align: right; width: 18em;">2</td>
-<td style="text-align: left; width: 18em;">2022-11-24</td>
-<td style="text-align: left; width: 18em;">2022-12-11</td>
+<td style="text-align: right; width: 20em;">2</td>
+<td style="text-align: right; width: 20em;">2</td>
+<td style="text-align: left; width: 20em;">2022-11-24</td>
+<td style="text-align: left; width: 20em;">2022-12-11</td>
 </tr>
 <tr class="odd">
-<td style="text-align: right; width: 18em;">3</td>
-<td style="text-align: right; width: 18em;">0</td>
-<td style="text-align: left; width: 18em;">2022-01-16</td>
-<td style="text-align: left; width: 18em;">2022-01-23</td>
+<td style="text-align: right; width: 20em;">3</td>
+<td style="text-align: right; width: 20em;">0</td>
+<td style="text-align: left; width: 20em;">2022-01-16</td>
+<td style="text-align: left; width: 20em;">2022-01-23</td>
 </tr>
 <tr class="even">
-<td style="text-align: right; width: 18em;">3</td>
-<td style="text-align: right; width: 18em;">1</td>
-<td style="text-align: left; width: 18em;">2022-03-21</td>
-<td style="text-align: left; width: 18em;">2022-06-23</td>
+<td style="text-align: right; width: 20em;">3</td>
+<td style="text-align: right; width: 20em;">1</td>
+<td style="text-align: left; width: 20em;">2022-03-21</td>
+<td style="text-align: left; width: 20em;">2022-06-23</td>
 </tr>
 <tr class="odd">
-<td style="text-align: right; width: 18em;">3</td>
-<td style="text-align: right; width: 18em;">2</td>
-<td style="text-align: left; width: 18em;">2022-07-11</td>
-<td style="text-align: left; width: 18em;">2022-08-08</td>
+<td style="text-align: right; width: 20em;">3</td>
+<td style="text-align: right; width: 20em;">2</td>
+<td style="text-align: left; width: 20em;">2022-07-11</td>
+<td style="text-align: left; width: 20em;">2022-08-08</td>
 </tr>
 <tr class="even">
-<td style="text-align: right; width: 18em;">4</td>
-<td style="text-align: right; width: 18em;">0</td>
-<td style="text-align: left; width: 18em;">2022-03-01</td>
-<td style="text-align: left; width: 18em;">2022-04-21</td>
+<td style="text-align: right; width: 20em;">4</td>
+<td style="text-align: right; width: 20em;">0</td>
+<td style="text-align: left; width: 20em;">2022-03-01</td>
+<td style="text-align: left; width: 20em;">2022-04-21</td>
 </tr>
 </tbody>
 </table>
@@ -798,18 +798,6 @@ Important
 </div>
 </div>
 </div>
-<section id="what-about-holes" class="level2">
-<h2 class="anchored" data-anchor-id="what-about-holes">What about holes?</h2>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>holes <span class="ot">&lt;-</span> islands <span class="sc">|&gt;</span> </span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(ID) <span class="sc">|&gt;</span> </span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(ID, start_date) <span class="sc">|&gt;</span> </span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">hole_start_date =</span> end_date,</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">hole_end_date   =</span> <span class="fu">lead</span>(start_date, <span class="dv">1</span>)</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-</section>
 </section>
 <section id="references" class="level1">
 <h1>References</h1>
