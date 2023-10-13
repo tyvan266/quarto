@@ -108,7 +108,7 @@ For our demo data, within `ID` 2, there are 4 `eventID`s, but just 3 coverage in
    (2) 2022-09-16 through 2022-11-03 (duration of `eventID` 3)
    (3) 2022-11-24 through 2022-12-11 (duration of last `eventID` 4)
   
-Hence our desired output table will comprise 3 rows for `ID` 2, with start and end times are described above for each coverage interval. Likewise, by visual inspection, `ID` 3, who experienced 6 events, will have only 3 coverage intervals as well, with one particularly long coverage interval (of back-to-back events) beginning on 2022-03-21 and finally abating on 2022-06-23. 
+Hence our desired output table will comprise 3 rows for `ID` 2, with start and end times as described above for each coverage interval. Likewise, by visual inspection, `ID` 3, who experienced 6 events, will have only 3 coverage intervals as well, with one particularly long coverage interval (of back-to-back events) beginning on 2022-03-21 and finally abating on 2022-06-23. 
 
 
 ## Application in Medicine 
@@ -197,7 +197,7 @@ islands |>
 ```
 
 
-Let's visualize our solution (proof by picture) 
+Let's visualize our solution (proof by picture). We plot all *islands* for all `ID`s from start to end as thick transparent gray bars.
 
 ```{r}
 #| code-fold: true 
@@ -232,4 +232,3 @@ ggplot(duration_data |> filter(ID <= 5),
 
 
 
-# References

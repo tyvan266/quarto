@@ -406,7 +406,7 @@ Note
 <li>2022-09-16 through 2022-11-03 (duration of <code>eventID</code> 3)</li>
 <li>2022-11-24 through 2022-12-11 (duration of last <code>eventID</code> 4)</li>
 </ol>
-<p>Hence our desired output table will comprise 3 rows for <code>ID</code> 2, with start and end times are described above for each coverage interval. Likewise, by visual inspection, <code>ID</code> 3, who experienced 6 events, will have only 3 coverage intervals as well, with one particularly long coverage interval (of back-to-back events) beginning on 2022-03-21 and finally abating on 2022-06-23.</p>
+<p>Hence our desired output table will comprise 3 rows for <code>ID</code> 2, with start and end times as described above for each coverage interval. Likewise, by visual inspection, <code>ID</code> 3, who experienced 6 events, will have only 3 coverage intervals as well, with one particularly long coverage interval (of back-to-back events) beginning on 2022-03-21 and finally abating on 2022-06-23.</p>
 </section>
 <section id="application-in-medicine" class="level2">
 <h2 class="anchored" data-anchor-id="application-in-medicine">Application in Medicine</h2>
@@ -449,23 +449,23 @@ Note
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-4" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-cell="annotated-cell-4" data-code-annotation="1" data-code-lines="3,4">Proceed left to right systematically (beginning with earliest events). All computations are done <strong>within</strong> individual</span>
+<span data-code-lines="3,4" data-code-cell="annotated-cell-4" data-code-annotation="1">Proceed left to right systematically (beginning with earliest events). All computations are done <strong>within</strong> individual</span>
 </dd>
 <dt data-target-cell="annotated-cell-4" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-cell="annotated-cell-4" data-code-annotation="2" data-code-lines="6">Get the prior event end date. By convention, use the current end if it is the very first event</span>
+<span data-code-lines="6" data-code-cell="annotated-cell-4" data-code-annotation="2">Get the prior event end date. By convention, use the current end if it is the very first event</span>
 </dd>
 <dt data-target-cell="annotated-cell-4" data-target-annotation="3">3</dt>
 <dd>
-<span data-code-cell="annotated-cell-4" data-code-annotation="3" data-code-lines="7">Maximum over all prior end times <em>relative</em> to the current event — but excluding the current interval. Note <code>cummax</code> function does not work on <em>datetypes</em> directly</span>
+<span data-code-lines="7" data-code-cell="annotated-cell-4" data-code-annotation="3">Maximum over all prior end times <em>relative</em> to the current event — but excluding the current interval. Note <code>cummax</code> function does not work on <em>datetypes</em> directly</span>
 </dd>
 <dt data-target-cell="annotated-cell-4" data-target-annotation="4">4</dt>
 <dd>
-<span data-code-cell="annotated-cell-4" data-code-annotation="4" data-code-lines="8">New island indicator</span>
+<span data-code-lines="8" data-code-cell="annotated-cell-4" data-code-annotation="4">New island indicator</span>
 </dd>
 <dt data-target-cell="annotated-cell-4" data-target-annotation="5">5</dt>
 <dd>
-<span data-code-cell="annotated-cell-4" data-code-annotation="5" data-code-lines="9">Accumulator trick to assign island IDs to each date range <strong>within</strong> individual</span>
+<span data-code-lines="9" data-code-cell="annotated-cell-4" data-code-annotation="5">Accumulator trick to assign island IDs to each date range <strong>within</strong> individual</span>
 </dd>
 </dl>
 </div>
@@ -768,7 +768,7 @@ Important
 
 </div>
 </div>
-<p>Let’s visualize our solution (proof by picture)</p>
+<p>Let’s visualize our solution (proof by picture). We plot all <em>islands</em> for all <code>ID</code>s from start to end as thick transparent gray bars.</p>
 <div class="cell page-columns page-full">
 <details>
 <summary>Code</summary>
@@ -804,9 +804,6 @@ Important
 </div>
 </div>
 </div>
-</section>
-<section id="references" class="level1">
-<h1>References</h1>
 
 
 </section>
