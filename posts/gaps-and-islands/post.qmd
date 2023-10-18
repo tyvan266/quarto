@@ -1,6 +1,6 @@
 ---
 title: 'The Gaps and Islands Problem'
-date: '2032-10-04'
+date: '2023-10-04'
 description: 'Also known as the overlapping-date-ranges problem, where we study duration data to identify coverage intervals (or, holes)'
 execute: 
   message: false
@@ -8,19 +8,15 @@ execute:
 editor_options: 
   chunk_output_type: console
 code-annotations: true
-
 ---
-
-
 
 # Problem formulation
 
-   The **gaps and islands** problem arises from analyzing duration data as commonly captured in databases. Duration data are *events* recorded with a *start* datetime and *end* datetime. Rows in the table correspond to unique events that someone is experiencing, or during which times the event is active. As individuals `ID` may have one or more event activity, such data are often stored in *long-form* as date ranges or *intervals*. 
+The **gaps and islands** problem arises from analyzing duration data as commonly captured in databases. Duration data are *events* recorded with a *start* datetime and *end* datetime. Rows in the table correspond to unique events that someone is experiencing, or during which times the event is active. As individuals `ID` may have one or more event activity, such data are often stored in *long-form* as date ranges or *intervals*.
 
-::: callout-note 
+::: callout-note
 For simplicity, we assume only one type of event under study --- the data can be generalized to include an event-type field.
-::: 
-
+:::
 
 ```{r}
 #| code-fold: true 
@@ -49,8 +45,6 @@ duration_data <- tibble(ID = rep(ID, n_events)) |>
 
 ```
 
-
-
 For example:
 
 ```{r}
@@ -59,15 +53,14 @@ head(duration_data, n=15) |> kable()
 ```
 
 ::: callout-tip
-To reveal the code how to simulate the demo data, click the `Code` text to expand above. 
+To reveal the code how to simulate the demo data, click the `Code` text to expand above.
 :::
 
-  Here, `ID` 1 experiences 5 distinct `eventID`s, with the first one occurring on 2/9 and lasting for 25 days until 3/6. The key observation is that `eventID` 4 **overlaps** with `eventID` 5 within `ID` 1, where event 5 beginning on 10/21 starts *before* event 4 has ended on 11/10. 
+Here, `ID` 1 experiences 5 distinct `eventID`s, with the first one occurring on 2/9 and lasting for 25 days until 3/6. The key observation is that `eventID` 4 **overlaps** with `eventID` 5 within `ID` 1, where event 5 beginning on 10/21 starts *before* event 4 has ended on 11/10.
 
+## Visualization
 
-## Visualization 
- 
- Visualizing the date ranges of event occurrences is useful. We plot all individual event date ranges colored by `ID`, supplying a `position_dodge` so overlaps are revealed (instead of lying right on top one another). 
+Visualizing the date ranges of event occurrences is useful. We plot all individual event date ranges colored by `ID`, supplying a `position_dodge` so overlaps are revealed (instead of lying right on top one another).
 
 ```{r}
 #| code-fold: true 
@@ -93,48 +86,43 @@ ggplot(duration_data |> filter(ID <= 5),
 
 ```
 
-
 ## What do we wish to solve for?
 
-Given the set-up, how do we want to collapse the data? Our *input data* is structured as one row per date range per person. The desired *output data* is one row per **coverage interval** per person. By coverage, we mean a continuous block of time, defined by a start date and end date, during which the individual is experiencing one or more active events. 
+Given the set-up, how do we want to collapse the data? Our *input data* is structured as one row per date range per person. The desired *output data* is one row per **coverage interval** per person. By coverage, we mean a continuous block of time, defined by a start date and end date, during which the individual is experiencing one or more active events.
 
 ::: callout-note
-Coverage intervals are referred to as **islands**. In-between time periods when there are no events occurring (no date ranges, overlapping or otherwise) are called **gaps** (holes).   
+Coverage intervals are referred to as **islands**. In-between time periods when there are no events occurring (no date ranges, overlapping or otherwise) are called **gaps** (holes).
 :::
 
 For our demo data, within `ID` 2, there are 4 `eventID`s, but just 3 coverage intervals (**islands**): some event is active between
 
-   (1) 2022-01-12 through 2022-02-08 (where the date range of event 2 completely overlaps and within the duration time of event 1)
-   (2) 2022-09-16 through 2022-11-03 (duration of `eventID` 3)
-   (3) 2022-11-24 through 2022-12-11 (duration of last `eventID` 4)
-  
-Hence our desired output table will comprise 3 rows for `ID` 2, with start and end times as described above for each coverage interval. Likewise, by visual inspection, `ID` 3, who experienced 6 events, will have only 3 coverage intervals as well, with one particularly long coverage interval (of back-to-back events) beginning on 2022-03-21 and finally abating on 2022-06-23. 
+(1) 2022-01-12 through 2022-02-08 (where the date range of event 2 completely overlaps and within the duration time of event 1)
+(2) 2022-09-16 through 2022-11-03 (duration of `eventID` 3)
+(3) 2022-11-24 through 2022-12-11 (duration of last `eventID` 4)
 
+Hence our desired output table will comprise 3 rows for `ID` 2, with start and end times as described above for each coverage interval. Likewise, by visual inspection, `ID` 3, who experienced 6 events, will have only 3 coverage intervals as well, with one particularly long coverage interval (of back-to-back events) beginning on 2022-03-21 and finally abating on 2022-06-23.
 
-## Application in Medicine 
-  
-  Examining the **gaps and islands** solution can reveal hidden assumptions about data processes or quality issues you might not be aware of. For example, perhaps certain overlap patterns violate assumptions about event frequencies, or some duration lengths and patterns are not physically possible. Typically, the data captured does not reflect the complete story.
+## Application in Medicine
 
-  Consider medical databases housing patient medication prescriptions. The table captures `PatientID`, `DispensedDate`, and `DaysSupply`, from which an `EndDate` is derived representing date of supply depletion relative to dispense time. The data as entered by pharmacists or business administrators for billing purposes or inventory management is only one part of the story, especially if our goal is to understand **how** patients are treated. 
-    
-  For example, suppose we observe multiple overlapping prescriptions for the same medication type (overlapping date ranges), but perhaps differing dose levels. It is not clear whether the patient has been *instructed* to take both prescriptions simultaneously (effective dose increase), or perhaps to switch to the lower dose before finishing the other prescription. **We have missing contextual information!** And, if we observe overlapping date ranges among *different* medication types, we may find new or surprising treatment regimes warranting investigation. 
+Examining the **gaps and islands** solution can reveal hidden assumptions about data processes or quality issues you might not be aware of. For example, perhaps certain overlap patterns violate assumptions about event frequencies, or some duration lengths and patterns are not physically possible. Typically, the data captured does not reflect the complete story.
 
-  If we **know** what we see is impossible, and we have high assurance of data validity (they were not entered erroneously), we investigate further. Perhaps, it turns out a subset of prescriptions were *returned-to-stock* and were never picked up by the patient, requiring a check on another data field that we were not aware was being captured. With data in the wild, as we're removed further away from the source of **data origination**, incomplete code-books, inaccurate code-books, or non-existent code-books represent the norm.  
-  
+Consider medical databases housing patient medication prescriptions. The table captures `PatientID`, `DispensedDate`, and `DaysSupply`, from which an `EndDate` is derived representing date of supply depletion relative to dispense time. The data as entered by pharmacists or business administrators for billing purposes or inventory management is only one part of the story, especially if our goal is to understand **how** patients are treated.
+
+For example, suppose we observe multiple overlapping prescriptions for the same medication type (overlapping date ranges), but perhaps differing dose levels. It is not clear whether the patient has been *instructed* to take both prescriptions simultaneously (effective dose increase), or perhaps to switch to the lower dose before finishing the other prescription. **We have missing contextual information!** And, if we observe overlapping date ranges among *different* medication types, we may find new or surprising treatment regimes warranting investigation.
+
+If we **know** what we see is impossible, and we have high assurance of data validity (they were not entered erroneously), we investigate further. Perhaps, it turns out a subset of prescriptions were *returned-to-stock* and were never picked up by the patient, requiring a check on another data field that we were not aware was being captured. With data in the wild, as we're removed further away from the source of **data origination**, incomplete code-books, inaccurate code-books, or non-existent code-books represent the norm.
+
 ::: callout-note
-Unless we already know what to look for, generalizing how we describe event patterns can help reveal new information requiring follow-up. 
+Unless we already know what to look for, generalizing how we describe event patterns can help reveal new information requiring follow-up.
 :::
 
-# The Gaps-and-Islands Algorithm 
+# The Gaps-and-Islands Algorithm
 
-Now we present the algorithm to solve the **gaps and islands** problem. To proceed systematically, we order the data by `ID` and ascending `start_date` of event times. For each new event beginning within `ID` (from left to right) we want to know does this event overlap with the previous one? That is, does it begin before the previous one has ended? If not, it *may* start a new chain (island). 
-    
-But checking against the immediate previous event is not enough --- potentially, there may be 
-even earlier overlapping events with end times exceeding some or all of the subsequent events. Then the current event under consideration forms the start of a new island only if it begins past the **maximum** end times over all prior events.
+Now we present the algorithm to solve the **gaps and islands** problem. To proceed systematically, we order the data by `ID` and ascending `start_date` of event times. For each new event beginning within `ID` (from left to right) we want to know does this event overlap with the previous one? That is, does it begin before the previous one has ended? If not, it *may* start a new chain (island).
 
-We can give grouping identifiers to those date ranges forming a unique island (events belonging to the same island having the same identifier). The trick is to use an **accumulator** over the *new island start* flag, because it will only increment when starting a new island. 
+But checking against the immediate previous event is not enough --- potentially, there may be even earlier overlapping events with end times exceeding some or all of the subsequent events. Then the current event under consideration forms the start of a new island only if it begins past the **maximum** end times over all prior events.
 
-
+We can give grouping identifiers to those date ranges forming a unique island (events belonging to the same island having the same identifier). The trick is to use an **accumulator** over the *new island start* flag, because it will only increment when starting a new island.
 
 ```{r}
 
@@ -148,16 +136,13 @@ duration_data |>
     new_island    = start_date > max_prior_end,                        # <4>
     coverageID    = cumsum(new_island)                                 # <5> 
   ) 
-```  
+```
 
-
-1. Proceed left to right systematically (beginning with earliest events). 
-   All computations are done **within** individual 
-2. Get the prior event end date. By convention, use the current end if it is the very first event 
-3. Maximum over all prior end times *relative* to the current event --- but excluding the current interval. 
-   Note `cummax` function does not work on *datetypes* directly 
-4. New island indicator 
-5. Accumulator trick to assign island IDs to each date range **within** individual 
+1.  Proceed left to right systematically (beginning with earliest events). All computations are done **within** individual
+2.  Get the prior event end date. By convention, use the current end if it is the very first event
+3.  Maximum over all prior end times *relative* to the current event --- but excluding the current interval. Note `cummax` function does not work on *datetypes* directly
+4.  New island indicator
+5.  Accumulator trick to assign island IDs to each date range **within** individual
 
 ```{r}
 #| code-fold: true
@@ -168,12 +153,11 @@ gaps_and_islands |>
 ```
 
 ::: callout-note
-Within individual, we start counting the first island at 0 
+Within individual, we start counting the first island at 0
 :::
 
-::: callout-important  
-As implemented here, a coverage interval is identified uniquely from the combination of *both* 
-`coverageID` **and** individual `ID`. 
+::: callout-important
+As implemented here, a coverage interval is identified uniquely from the combination of *both* `coverageID` **and** individual `ID`.
 :::
 
 Finally, we collapse down to unique coverage intervals by summarizing over individual and their `coverageID`s:
@@ -188,14 +172,12 @@ gaps_and_islands |>
   )  
 ```
 
-
 ```{r}
 #| code-fold: true
 islands |> 
   head(n=10) |> kable() |> kable_styling(full_width=FALSE) |> 
   column_spec(1:4, width = "20em")
 ```
-
 
 Let's visualize our solution (proof by picture). We plot all *islands* for all `ID`s from start to end as thick transparent gray bars.
 
@@ -229,6 +211,3 @@ ggplot(duration_data |> filter(ID <= 5),
   )
 
 ```
-
-
-

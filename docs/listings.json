@@ -3,8 +3,8 @@
     "listing": "/blog.html",
     "items": [
       "/posts/gaps-and-islands/post.html",
-      "/posts/conditional-aggregation-p1/post.html",
-      "/posts/intro-purrr-map/post.html"
+      "/posts/intro-purrr-map/post.html",
+      "/posts/conditional-aggregation-p1/post.html"
     ]
   }
 ]

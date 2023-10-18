@@ -13,7 +13,7 @@ toc-depth: 3
 ---
 
 
-# Looping for free with vectorized functions 
+# Looping for free 
 
 Functions in the `tidyverse` suite of libraries are typically **vectorized**. They operate on one or more vector (or *list*) arguments and return a vector (*list*) output. This means we get looping-behavior for free without having to explicitly program the looping structure. 
 

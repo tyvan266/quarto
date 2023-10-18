@@ -1,5 +1,5 @@
 ---
-title: "Sieving Data : A Quarto Blog"
+title: "Sieving Data, A Quarto Blog"
 listing:
   contents: posts
   sort: "date desc"
