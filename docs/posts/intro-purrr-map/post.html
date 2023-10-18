@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.433">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2023-10-11">
+<meta name="description" content="Application to look-back windows and the nearest point problem">
+
+<title>Learning to Sieve Data - Doing iteration with map (when vectorized functions are not enough)</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+<script src="../../site_libs/kePrint-0.0.1/kePrint.js"></script>
+<link href="../../site_libs/lightable-0.0.1/lightable.css" rel="stylesheet">
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">Learning to Sieve Data</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../blog.html" rel="" target="">
+ <span class="menu-text">Posts</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html" rel="" target="">
+ <span class="menu-text">About</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/tyvan266" rel="" target=""><i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://twitter.com" rel="" target=""><i class="bi bi-twitter" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">Doing iteration with <code>map</code> (when vectorized functions are not enough)</h1>
+                  <div>
+        <div class="description">
+          Application to look-back windows and the nearest point problem
+        </div>
+      </div>
+                </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">October 11, 2023</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#looping-for-free-with-vectorized-functions" id="toc-looping-for-free-with-vectorized-functions" class="nav-link active" data-scroll-target="#looping-for-free-with-vectorized-functions">Looping for free with vectorized functions</a></li>
+  <li><a href="#performing-mutation" id="toc-performing-mutation" class="nav-link" data-scroll-target="#performing-mutation">Performing mutation</a></li>
+  <li><a href="#using-map" id="toc-using-map" class="nav-link" data-scroll-target="#using-map">Using <code>map</code></a>
+  <ul class="collapse">
+  <li><a href="#thresholding-and-counting" id="toc-thresholding-and-counting" class="nav-link" data-scroll-target="#thresholding-and-counting">Thresholding and counting</a></li>
+  </ul></li>
+  <li><a href="#patient-look-back-windows-in-medical-trials" id="toc-patient-look-back-windows-in-medical-trials" class="nav-link" data-scroll-target="#patient-look-back-windows-in-medical-trials">Patient look-back windows in medical trials</a>
+  <ul class="collapse">
+  <li><a href="#map-for-window-aggregations" id="toc-map-for-window-aggregations" class="nav-link" data-scroll-target="#map-for-window-aggregations">Map for window aggregations</a></li>
+  <li><a href="#composite-scores-with-missing-values" id="toc-composite-scores-with-missing-values" class="nav-link" data-scroll-target="#composite-scores-with-missing-values">Composite scores with missing values</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+<section id="looping-for-free-with-vectorized-functions" class="level1">
+<h1>Looping for free with vectorized functions</h1>
+<p>Functions in the <code>tidyverse</code> suite of libraries are typically <strong>vectorized</strong>. They operate on one or more vector (or <em>list</em>) arguments and return a vector (<em>list</em>) output. This means we get looping-behavior for free without having to explicitly program the looping structure.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>In R, <strong>vectors</strong> are special cases of <strong>lists</strong> where all elements in the list are of the same atomic type (<code>dbl</code>, <code>char</code>, <code>logical</code>, etc.) — i.e., when they do not hold further objects (or other lists).</p>
+</div>
+</div>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(kableExtra)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">12345</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>demo_data <span class="ot">&lt;-</span> </span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tribble</span>(</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="sc">~</span> <span class="st">"X"</span>, <span class="sc">~</span> <span class="st">"Y"</span>, <span class="sc">~</span> <span class="st">"Z"</span>,</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="dv">3</span>, <span class="dv">8</span>, <span class="dv">5</span>,</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="dv">2</span>, <span class="dv">4</span>, <span class="dv">7</span>,</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="dv">6</span>, <span class="dv">3</span>, <span class="dv">8</span>,</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="dv">1</span>, <span class="dv">5</span>, <span class="dv">2</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>For example, consider the follow demo data:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(demo_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;" data-quarto-table-cell-role="th">X</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Y</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Z</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">5</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">7</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">8</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">2</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+<p>Suppose we want to create a new variable <code>W</code> on the <code>data.frame</code> defined as follows:</p>
+<ul>
+<li>if <code>X</code> is less than <code>Y</code>, then <code>W = Z</code></li>
+<li>otherwise, <code>W = 2 * Z</code></li>
+</ul>
+<p>We can achieve this using the <em>vectorized</em> <code>if_else</code> function wrapped around the <code>mutate</code> method for column creation. Let’s also create the sum of <code>X</code> and <code>Y</code> into <code>V</code></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>demo_data <span class="sc">|&gt;</span> </span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">W =</span> <span class="fu">if_else</span>(X <span class="sc">&lt;</span> Y, Z, <span class="dv">2</span> <span class="sc">*</span> Z),</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">V =</span> X <span class="sc">+</span> Y</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>        <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;" data-quarto-table-cell-role="th">X</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Y</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Z</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">W</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">V</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">11</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">6</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">9</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">6</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+</section>
+<section id="performing-mutation" class="level1">
+<h1>Performing mutation</h1>
+<p>Examine the result <code>W</code> line-by-line. Is this what we want and expected? Here, yes. When we create a new column via <code>mutate</code>, it’s tempting to think the operation is happening <em>row-by-row</em> (as in a loop). We may even be tempted to <em>visualize</em> the computation as proceeding one line at a time, and updating some accompanying placeholder column cell-by-cell with the new result <code>W</code> and <code>V</code> forming in the end.</p>
+<p><strong>But this is the wrong mental model! And it can lead us astray in more complex scenarios.</strong></p>
+<p>When variable field names of a <code>data.frame</code> are used in a <code>tidyverse</code> transformation, the function call is operating on the <em>entire column(s)</em> as inputs. Under a successful <code>tidyverse</code> transformation, the result must be compatible with the data table dimensions to modify it appropriately — or will be made compatible (under the hood) by the <code>mutate</code> wrapper.</p>
+<p>To demonstrate, consider calling the function <code>sum</code> (in <code>base</code> R) on the <code>X</code> variable</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(demo_data<span class="sc">$</span>X)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 12</code></pre>
+</div>
+</div>
+<p>Let’s update <code>demo_data</code> by creating a new variable but using <code>base::sum</code></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>demo_data <span class="sc">|&gt;</span> </span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">sumX =</span> <span class="fu">sum</span>(X)) <span class="sc">|&gt;</span> <span class="fu">kable</span>() </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;" data-quarto-table-cell-role="th">X</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Y</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Z</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">sumX</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">12</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">12</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">12</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">12</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+<p>Now, was this expected? The purpose of <code>mutate</code> is to glue the outputs of calling functions back onto the original data table. But as <code>sum</code> operates on a <em>list</em> input and returns a <em>scalar</em> output, <code>mutate</code> does the work of broadcasting the scalar into a vector of the right dimensions and does the re-merging. The key observation is <code>mutate</code> handles the intermediate steps, so that we abstract <code>mutate</code>ations as taking <em>list</em> arguments (supply by the <code>data.frame</code> columns) and <em>eventually returning list outputs</em> for augmentation and transformation.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>A <strong>scalar</strong> is a one-dimensional data type (compared to matrices, lists, data.frames, objects, etc.). Simply, a scalar is a singular value or number, and that’s all — 2 is scalar, but the vector containing the single element two, <code>[2]</code>, is not.</p>
+</div>
+</div>
+<p>The (possibly) <em>vectorized</em> function calls happen separately, and <code>mutate</code>’s job is to transform the table with the new result — <code>mutate</code> does <strong>not perform row-wise looping</strong>.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Important
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>In the <code>tidyverse</code>, transformation of a <code>data.frame</code> is a sequence of operations over one or more <em>(entire) columns</em>. The correct mental model is that of <strong>column-wise</strong> operation, <em>not</em> as <strong>row-wise</strong> operations.</p>
+</div>
+</div>
+<p>As another example, define <code>M</code> with base <code>sum</code> as</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>demo_data <span class="sc">|&gt;</span> </span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">M =</span> <span class="fu">sum</span>(X, Y <span class="sc">+</span> <span class="dv">1</span>)) <span class="sc">|&gt;</span> <span class="fu">kable</span>() </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;" data-quarto-table-cell-role="th">X</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Y</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Z</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">M</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">36</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">36</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">36</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">36</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+<p>The function result is just 36, being the sum of all elements of <code>X</code> and—after increased by 1—the transformed elements of <code>Y</code>. The <em>vectorized</em> addition operator <code>+</code> is <em>different</em> from the <code>sum</code> function that returns a scalar (but also takes vector inputs).</p>
+</section>
+<section id="using-map" class="level1">
+<h1>Using <code>map</code></h1>
+<p>In essence, <code>map</code> allows us to call a (possibly) <em>vectorized</em> function repeatedly over a list of <em>input arguments</em>. It loops or iterates over the input values, and collects the results into a new list. When used within the <code>tidyverse</code> wrapped around <code>mutate</code>, <code>map</code>ping provides <em>nested looping</em> like behavior, where we need to process the values along one or more columns simultaneously (as inputs) while calling some other vectorized operation.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The <code>purrr</code> family of <code>map</code> functions provide iteration of functions over a list of inputs.</p>
+</div>
+</div>
+<section id="thresholding-and-counting" class="level2">
+<h2 class="anchored" data-anchor-id="thresholding-and-counting">Thresholding and counting</h2>
+<p>We demonstrate with a simple application to <em>thresholding</em>. Suppose we have a list of values <code>X</code>, and a smaller list of <em>thresholding values</em> <code>T</code></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(purrr)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>X <span class="ot">=</span> <span class="fu">c</span>(<span class="dv">3</span>, <span class="dv">7</span>, <span class="dv">10</span>, <span class="dv">3</span>, <span class="dv">14</span>, <span class="dv">20</span>, <span class="dv">11</span>, <span class="dv">27</span>)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>T <span class="ot">=</span> <span class="fu">c</span>(<span class="dv">3</span>, <span class="dv">10</span>, <span class="dv">15</span>, <span class="dv">22</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We want to know, at some threshold of interest, how many values in <code>X</code> fall <em>below</em> the threshold. For the first threshold value 3, we can answer with <code>sum</code> over the Boolean vector</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>X <span class="sc">&lt;</span> <span class="dv">3</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(X <span class="sc">&lt;</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0</code></pre>
+</div>
+</div>
+<p>Now to achieve this for all values in our threshold list, we use <code>map_dbl</code> — the first argument is the list input we want to <em>loop over</em> (threshold values), and the second argument is a annonymoys function over <code>X</code> and the threshold argument <code>.t</code>. The final result here will match the dimensions argument list that we want to run the function over.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">map_dbl</span>(T, \(.t) <span class="fu">sum</span>(X <span class="sc">&lt;</span> .t))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0 3 6 7</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="patient-look-back-windows-in-medical-trials" class="level1">
+<h1>Patient look-back windows in medical trials</h1>
+<p>Suppose we have a cohort of patients coming in for regularly scheduled follow-up visits. A variety of vital signs are taken— at each visit, vital signs <code>X</code>, <code>Y</code>, and <code>Z</code> are measured. However, sometime patients miss a scheduled appointment, so visit times are not evenly-spaced. Moreover, at certain occasions (say, 30% of the time), a particular vital sign measurement is missed (due to technical difficulties or other causes). The data may appear as follows</p>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>patient_visit_data <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">ID        =</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>, <span class="dv">10</span>),</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">VisitDate =</span> <span class="fu">sample</span>(<span class="fu">seq</span>(<span class="fu">as.Date</span>(<span class="st">'2022-01-01'</span>), <span class="fu">as.Date</span>(<span class="st">'2022-06-30'</span>), <span class="at">by =</span> <span class="st">"day"</span>), <span class="dv">100</span>, <span class="at">replace=</span><span class="cn">TRUE</span>), </span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">X         =</span> <span class="fu">rnorm</span>(<span class="dv">100</span>, <span class="dv">30</span>, <span class="dv">10</span>),</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">Y         =</span> <span class="fu">rnorm</span>(<span class="dv">100</span>, <span class="dv">83</span>, <span class="dv">20</span>),</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">Z         =</span> <span class="fu">rnorm</span>(<span class="dv">100</span>, <span class="dv">50</span>, <span class="dv">5</span>) </span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>  <span class="co"># assume 30% missing rate for each variable</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate_at</span>(</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">vars</span>(X,Y,Z), </span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>    \(.x) <span class="fu">if_else</span>(<span class="fu">sample</span>(<span class="at">x=</span><span class="dv">0</span><span class="sc">:</span><span class="dv">1</span>, <span class="at">size=</span><span class="dv">100</span>, <span class="at">replace=</span><span class="cn">TRUE</span>, <span class="at">prob =</span> <span class="fu">c</span>(.<span class="dv">70</span>,.<span class="dv">30</span>)) <span class="sc">==</span> <span class="dv">1</span>, <span class="cn">NA</span>, .x)) <span class="sc">|&gt;</span> </span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(ID, VisitDate) <span class="sc">|&gt;</span> </span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate_if</span>(is.numeric, round)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Click <code>Code</code> to reveal the simulation script.</p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>patient_visit_data <span class="sc">|&gt;</span> <span class="fu">filter</span>(ID <span class="sc">==</span> <span class="dv">3</span>) <span class="sc">|&gt;</span> <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;" data-quarto-table-cell-role="th">ID</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">VisitDate</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">X</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Y</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Z</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">2022-01-03</td>
+<td style="text-align: right;">39</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">53</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">2022-01-07</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">105</td>
+<td style="text-align: right;">53</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">2022-02-24</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">78</td>
+<td style="text-align: right;">49</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">2022-02-25</td>
+<td style="text-align: right;">35</td>
+<td style="text-align: right;">109</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">2022-03-27</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">40</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">2022-04-04</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">94</td>
+<td style="text-align: right;">47</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">2022-04-08</td>
+<td style="text-align: right;">37</td>
+<td style="text-align: right;">63</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">2022-04-09</td>
+<td style="text-align: right;">28</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">52</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">2022-05-25</td>
+<td style="text-align: right;">36</td>
+<td style="text-align: right;">103</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">2022-06-01</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">89</td>
+<td style="text-align: right;">NA</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+<section id="map-for-window-aggregations" class="level2">
+<h2 class="anchored" data-anchor-id="map-for-window-aggregations">Map for window aggregations</h2>
+<p>Suppose our set of tasks are to compute at <em>each</em> scheduled visit</p>
+<ol type="1">
+<li>The <em>average</em> all <code>X</code> values taken within the last 30 days (rolling average of available values)</li>
+<li>The <em>maximum</em> <code>Y</code> value recorded so far, but excluded the current <code>Y</code></li>
+<li>The current value of <code>Z</code>, or the most recent one recorded within the last 10 days</li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>patient_visit_with_window_summary <span class="ot">&lt;-</span> patient_visit_data <span class="sc">|&gt;</span> </span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(ID) <span class="sc">|&gt;</span> </span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">X_30day_average =</span> </span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>      <span class="fu">map_dbl</span>(VisitDate, </span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>        \(.v) <span class="fu">mean</span>(X[VisitDate <span class="sc">&lt;=</span> .v <span class="sc">&amp;</span> VisitDate <span class="sc">&gt;=</span> .v <span class="sc">-</span> <span class="dv">30</span>], <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">Y_max =</span> </span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>      <span class="fu">map_dbl</span>(VisitDate, </span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>        \(.v) <span class="fu">max</span>(Y[VisitDate <span class="sc">&lt;=</span> .v], <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">Z_recent =</span> </span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>      <span class="fu">map_dbl</span>(VisitDate, </span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>        \(.v) <span class="fu">last</span>(Z[VisitDate <span class="sc">&lt;=</span> .v <span class="sc">-</span> <span class="dv">10</span>], <span class="at">na_rm =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>    )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>patient_visit_with_window_summary <span class="sc">|&gt;</span> <span class="fu">filter</span>(ID <span class="sc">==</span> <span class="dv">3</span> <span class="sc">|</span> ID <span class="sc">==</span> <span class="dv">7</span>) <span class="sc">|&gt;</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">n =</span> <span class="dv">20</span>) <span class="sc">|&gt;</span> <span class="fu">column_spec</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">7</span>, <span class="at">border_left =</span> <span class="cn">TRUE</span>, <span class="at">border_right =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<table data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;" data-quarto-table-cell-role="th">ID</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">VisitDate</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">X</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Y</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Z</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">X_30day_average</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Y_max</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Z_recent</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">3</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-01-03</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">39</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">53</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">39.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">-Inf</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">3</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-01-07</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">105</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">53</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">39.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">105</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">3</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-02-24</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">16</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">78</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">49</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">16.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">105</td>
+<td style="text-align: right;">53</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">3</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-02-25</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">35</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">109</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">50</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">25.50000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">109</td>
+<td style="text-align: right;">53</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">3</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-03-27</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">48</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">40</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">41.50000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">109</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">3</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-04-04</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">30</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">94</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">47</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">39.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">109</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">3</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-04-08</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">37</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">63</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">38.33333</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">109</td>
+<td style="text-align: right;">40</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">3</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-04-09</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">28</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">52</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">35.75000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">109</td>
+<td style="text-align: right;">40</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">3</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-05-25</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">36</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">103</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">36.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">109</td>
+<td style="text-align: right;">52</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">3</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-06-01</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">89</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">36.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">109</td>
+<td style="text-align: right;">52</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">7</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-01-18</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">35</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">91</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">55</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">35.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">91</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">7</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-02-01</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">24</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">44</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">46</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">29.50000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">91</td>
+<td style="text-align: right;">55</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">7</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-02-27</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">35</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">73</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">29.50000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">91</td>
+<td style="text-align: right;">46</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">7</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-04-06</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">26</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">90</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">56</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">26.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">91</td>
+<td style="text-align: right;">46</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">7</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-04-26</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">24</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">102</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">51</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">25.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">102</td>
+<td style="text-align: right;">56</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">7</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-05-01</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">88</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">25.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">102</td>
+<td style="text-align: right;">56</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">7</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-05-12</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">92</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">24.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">102</td>
+<td style="text-align: right;">51</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">7</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-05-15</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">56</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">90</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">40.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">102</td>
+<td style="text-align: right;">51</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">7</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-05-28</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">64</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">54</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">56.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">102</td>
+<td style="text-align: right;">51</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">7</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-06-16</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">89</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">46</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NaN</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">102</td>
+<td style="text-align: right;">54</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Important
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>When supplying arguments for <code>na.rm</code> or <code>na_rm</code>, always provide the full values <code>TRUE</code> or <code>FALSE</code> instead of using the abbreviated shortcut <code>T</code> or <code>F</code>.</p>
+</div>
+</div>
+<p>To help spot-check the results (particularly for the rolling 30-day look-back averages), use the general <code>map</code> to get list of values meeting the condition at <em>each visit</em> (list of lists!)</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>patient_visit_with_window_summary <span class="ot">&lt;-</span> patient_visit_data <span class="sc">|&gt;</span> </span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(ID) <span class="sc">|&gt;</span> </span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">Xs_30day =</span> <span class="fu">map</span>(VisitDate, \(.v) X[VisitDate <span class="sc">&lt;=</span> .v <span class="sc">&amp;</span> VisitDate <span class="sc">&gt;=</span> .v <span class="sc">-</span> <span class="dv">30</span>]), </span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">X_30day_average =</span> </span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>      <span class="fu">map_dbl</span>(VisitDate, </span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>        \(.v) <span class="fu">mean</span>(X[VisitDate <span class="sc">&lt;=</span> .v <span class="sc">&amp;</span> VisitDate <span class="sc">&gt;=</span> .v <span class="sc">-</span> <span class="dv">30</span>], <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">Y_max =</span> </span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>      <span class="fu">map_dbl</span>(VisitDate, </span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>        \(.v) <span class="fu">max</span>(Y[VisitDate <span class="sc">&lt;=</span> .v], <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">Z_recent =</span> </span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>      <span class="fu">map_dbl</span>(VisitDate, </span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>        \(.v) <span class="fu">last</span>(Z[VisitDate <span class="sc">&lt;=</span> .v], <span class="at">na_rm =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>    ) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>patient_visit_with_window_summary <span class="sc">|&gt;</span> <span class="fu">filter</span>(ID <span class="sc">==</span> <span class="dv">3</span> <span class="sc">|</span> ID <span class="sc">==</span> <span class="dv">7</span>) <span class="sc">|&gt;</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">kable</span>(<span class="at">n =</span> <span class="dv">20</span>) <span class="sc">|&gt;</span> <span class="fu">column_spec</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">8</span>, <span class="at">border_left =</span> <span class="cn">TRUE</span>, <span class="at">border_right =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<table data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;" data-quarto-table-cell-role="th">ID</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">VisitDate</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">X</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Y</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Z</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">Xs_30day</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">X_30day_average</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Y_max</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Z_recent</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">3</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-01-03</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">39</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">53</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">39</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">39.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">-Inf</td>
+<td style="text-align: right;">53</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">3</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-01-07</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">105</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">53</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">39, NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">39.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">105</td>
+<td style="text-align: right;">53</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">3</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-02-24</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">16</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">78</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">49</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">16</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">16.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">105</td>
+<td style="text-align: right;">49</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">3</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-02-25</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">35</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">109</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">50</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">16, 35</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">25.50000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">109</td>
+<td style="text-align: right;">50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">3</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-03-27</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">48</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">40</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">35, 48</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">41.50000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">109</td>
+<td style="text-align: right;">40</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">3</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-04-04</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">30</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">94</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">47</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">48, 30</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">39.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">109</td>
+<td style="text-align: right;">47</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">3</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-04-08</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">37</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">63</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">48, 30, 37</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">38.33333</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">109</td>
+<td style="text-align: right;">47</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">3</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-04-09</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">28</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">52</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">48, 30, 37, 28</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">35.75000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">109</td>
+<td style="text-align: right;">52</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">3</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-05-25</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">36</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">103</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">36</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">36.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">109</td>
+<td style="text-align: right;">52</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">3</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-06-01</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">89</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">36, NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">36.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">109</td>
+<td style="text-align: right;">52</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">7</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-01-18</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">35</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">91</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">55</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">35</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">35.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">91</td>
+<td style="text-align: right;">55</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">7</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-02-01</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">24</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">44</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">46</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">35, 24</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">29.50000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">91</td>
+<td style="text-align: right;">46</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">7</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-02-27</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">35</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">73</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">24, 35</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">29.50000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">91</td>
+<td style="text-align: right;">46</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">7</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-04-06</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">26</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">90</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">56</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">26</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">26.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">91</td>
+<td style="text-align: right;">56</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">7</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-04-26</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">24</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">102</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">51</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">26, 24</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">25.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">102</td>
+<td style="text-align: right;">51</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">7</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-05-01</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">88</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">26, 24, NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">25.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">102</td>
+<td style="text-align: right;">51</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">7</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-05-12</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">92</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">24, NA, NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">24.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">102</td>
+<td style="text-align: right;">51</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">7</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-05-15</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">56</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">90</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">24, NA, NA, 56</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">40.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">102</td>
+<td style="text-align: right;">51</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">7</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-05-28</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">64</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">54</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">NA, NA, 56, NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">56.00000</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">102</td>
+<td style="text-align: right;">54</td>
+</tr>
+<tr class="even">
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">7</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">2022-06-16</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">89</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">46</td>
+<td style="text-align: left; border-left: 1px solid; border-right: 1px solid;">NA, NA</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">NaN</td>
+<td style="text-align: right; border-left: 1px solid; border-right: 1px solid;">102</td>
+<td style="text-align: right;">46</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+</section>
+<section id="composite-scores-with-missing-values" class="level2">
+<h2 class="anchored" data-anchor-id="composite-scores-with-missing-values">Composite scores with missing values</h2>
+<p>We want to compute and track some composite score at each visit. We would like to use the value taken at the visit time, but we’re willing to impute with the closest value 30 days prior. Our composite measure is <span class="math inline">\(X + Y\)</span>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>patient_visit_data <span class="sc">|&gt;</span> </span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(ID) <span class="sc">|&gt;</span> </span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">XplusY =</span> <span class="fu">map_dbl</span>(VisitDate, </span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>      \(.v) </span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>        <span class="fu">last</span>(</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>          X[VisitDate <span class="sc">&lt;=</span> .v <span class="sc">&amp;</span> VisitDate <span class="sc">&gt;=</span> .v <span class="sc">-</span> <span class="dv">30</span>], <span class="at">na_rm =</span> <span class="cn">TRUE</span>) </span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>        <span class="sc">+</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">last</span>(</span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>          Y[VisitDate <span class="sc">&lt;=</span> .v <span class="sc">&amp;</span> VisitDate <span class="sc">&gt;=</span> .v <span class="sc">-</span> <span class="dv">30</span>], <span class="at">na_rm =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">|&gt;</span> </span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(ID <span class="sc">==</span> <span class="dv">2</span> <span class="sc">|</span> ID <span class="sc">==</span> <span class="dv">8</span>) <span class="sc">|&gt;</span> <span class="fu">kable</span>(<span class="at">n =</span> <span class="dv">20</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;" data-quarto-table-cell-role="th">ID</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">VisitDate</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">X</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Y</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Z</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">XplusY</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-01-12</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">92</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">116</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-01-15</td>
+<td style="text-align: right;">34</td>
+<td style="text-align: right;">113</td>
+<td style="text-align: right;">47</td>
+<td style="text-align: right;">147</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-02-20</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">103</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-03-03</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-03-15</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">93</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-04-13</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">52</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-05-04</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">55</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-05-13</td>
+<td style="text-align: right;">31</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-06-25</td>
+<td style="text-align: right;">28</td>
+<td style="text-align: right;">88</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">116</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-06-28</td>
+<td style="text-align: right;">44</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">59</td>
+<td style="text-align: right;">132</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">2022-01-02</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">2022-01-11</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">74</td>
+<td style="text-align: right;">56</td>
+<td style="text-align: right;">98</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">2022-01-25</td>
+<td style="text-align: right;">28</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">41</td>
+<td style="text-align: right;">102</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">2022-02-03</td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;">93</td>
+<td style="text-align: right;">59</td>
+<td style="text-align: right;">133</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">2022-02-07</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">133</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">2022-04-16</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">66</td>
+<td style="text-align: right;">52</td>
+<td style="text-align: right;">96</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">2022-04-16</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">49</td>
+<td style="text-align: right;">96</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">2022-05-12</td>
+<td style="text-align: right;">42</td>
+<td style="text-align: right;">93</td>
+<td style="text-align: right;">49</td>
+<td style="text-align: right;">135</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">2022-05-15</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">102</td>
+<td style="text-align: right;">52</td>
+<td style="text-align: right;">144</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">2022-05-23</td>
+<td style="text-align: right;">27</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">129</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The function <code>last</code> has an argument called <code>na_rm</code> with default value <code>False</code>. Here, we want the last <strong>available</strong> measurement recorded when <strong>sorted</strong> by descending date — which will correspond to the most recent record.</p>
+</div>
+</div>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

@@ -2,9 +2,9 @@
   {
     "listing": "/blog.html",
     "items": [
-      "/posts/intro-purrr-map/post.html",
       "/posts/gaps-and-islands/post.html",
-      "/posts/conditional-aggregation-p1/post.html"
+      "/posts/conditional-aggregation-p1/post.html",
+      "/posts/intro-purrr-map/post.html"
     ]
   }
 ]

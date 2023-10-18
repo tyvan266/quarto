@@ -1,0 +1,289 @@
+---
+title: 'Doing iteration with `map` (when vectorized functions are not enough)'
+date: '2023-10-11'
+description: 'Application to look-back windows and the nearest point problem' 
+execute: 
+  message: false
+  warning: false
+editor_options: 
+  chunk_output_type: console
+code-annotations: true
+toc: true
+toc-depth: 3
+---
+
+
+# Looping for free with vectorized functions 
+
+Functions in the `tidyverse` suite of libraries are typically **vectorized**. They operate on one or more vector (or *list*) arguments and return a vector (*list*) output. This means we get looping-behavior for free without having to explicitly program the looping structure. 
+
+::: callout-note 
+In R, **vectors** are special cases of **lists** where all elements in the list are of the same atomic type (`dbl`, `char`, `logical`, etc.) --- i.e., when they do not hold further objects (or other lists). 
+:::
+
+
+```{r}
+#| code-fold: true 
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+
+set.seed(12345)
+
+demo_data <- 
+  tribble(
+    ~ "X", ~ "Y", ~ "Z",
+    3, 8, 5,
+    2, 4, 7,
+    6, 3, 8,
+    1, 5, 2
+  )
+
+```
+
+For example, consider the follow demo data:
+
+```{r}
+kable(demo_data)
+```
+
+Suppose we want to create a new variable `W` on the `data.frame` defined as follows:
+
+  - if `X` is less than `Y`, then `W = Z`
+  - otherwise, `W = 2 * Z` 
+  
+We can achieve this using the *vectorized* `if_else` function wrapped around the `mutate` method for column creation. Let's also create the sum of `X` and `Y` into `V`
+
+```{r}
+
+demo_data |> 
+  mutate(
+    W = if_else(X < Y, Z, 2 * Z),
+    V = X + Y
+  ) |>
+        kable()
+
+
+```
+
+# Performing mutation
+
+Examine the result `W` line-by-line. Is this what we want and expected? Here, yes. When we create a new column via `mutate`, it's tempting to think the operation is happening *row-by-row* (as in a loop). We may even be tempted to *visualize* the computation as proceeding one line at a time, and updating some accompanying placeholder column cell-by-cell with the new result `W` and `V` forming in the end.
+
+**But this is the wrong mental model! And it can lead us astray in more complex scenarios.** 
+
+When variable field names of a `data.frame` are used in a `tidyverse` transformation, the function call is operating on the *entire column(s)* as inputs. Under a successful `tidyverse` transformation, the result must be compatible with the data table dimensions to modify it appropriately --- or will be made compatible (under the hood) by the `mutate` wrapper.  
+
+
+To demonstrate, consider calling the function `sum` (in `base` R) on the `X` variable
+
+```{r}
+sum(demo_data$X)
+```  
+
+Let's update `demo_data` by creating a new variable but using `base::sum` 
+
+```{r}
+demo_data |> 
+  mutate(sumX = sum(X)) |> kable() 
+
+```
+
+Now, was this expected? The purpose of `mutate` is to glue the outputs of calling functions back onto the original data table. But as `sum` operates on a *list* input and returns a *scalar* output, `mutate` does the work of broadcasting the scalar into a vector of the right dimensions and does the re-merging. The key observation is `mutate` handles the intermediate steps, so that we abstract `mutate`ations as taking *list* arguments (supply by the `data.frame` columns) and *eventually returning list outputs* for augmentation and transformation. 
+
+::: callout-tip
+A **scalar** is a one-dimensional data type (compared to matrices, lists, data.frames, objects, etc.). Simply, a scalar is a singular value or number, and that's all --- 2 is scalar, but the vector containing the single element two, `[2]`, is not.
+:::
+
+The (possibly) *vectorized* function calls happen separately, and `mutate`'s job is to transform the table with the new result --- `mutate` does **not perform row-wise looping**.
+
+::: callout-important
+In the `tidyverse`, transformation of a `data.frame` is a sequence of operations over one or more *(entire) columns*. The correct mental model is that of **column-wise** operation, *not* as **row-wise** operations.
+:::
+
+As another example, define `M` with base `sum` as 
+
+```{r}
+demo_data |> 
+  mutate(M = sum(X, Y + 1)) |> kable() 
+
+```
+
+The function result is just 36, being the sum of all elements of `X` and---after increased by 1---the transformed elements of `Y`. The *vectorized* addition operator `+` is *different* from the `sum` function that returns a scalar (but also takes vector inputs).
+
+
+# Using `map` 
+
+In essence, `map` allows us to call a (possibly) *vectorized* function repeatedly over a list of *input arguments*. It loops or iterates over the input values, and collects the results into a new list. When used within the `tidyverse` wrapped around `mutate`, `map`ping provides *nested looping* like behavior, where we need to process the values along one or more columns simultaneously (as inputs) while calling some other vectorized operation.
+
+
+::: callout-note
+The `purrr` family of `map` functions provide iteration of functions over a list of inputs. 
+:::
+
+## Thresholding and counting 
+
+We demonstrate with a simple application to *thresholding*. Suppose we have a list of values `X`, and a smaller list of *thresholding values* `T`
+
+```{r}
+library(purrr)
+
+X = c(3, 7, 10, 3, 14, 20, 11, 27)
+T = c(3, 10, 15, 22)
+
+```
+
+We want to know, at some threshold of interest, how many values in `X` fall *below* the threshold. For the first threshold value 3, we can answer with `sum` over the Boolean vector 
+
+```{r}
+X < 3
+sum(X < 3)
+```
+
+Now to achieve this for all values in our threshold list, we use `map_dbl` --- the first argument is the list input we want to *loop over* (threshold values), and the second argument is a annonymoys function over `X` and the threshold argument `.t`. The final result here will match the dimensions argument list that we want to run the function over. 
+
+```{r}
+map_dbl(T, \(.t) sum(X < .t))
+
+```
+
+
+# Patient look-back windows in medical trials
+
+Suppose we have a cohort of patients coming in for regularly scheduled follow-up visits. A variety of vital signs are taken--- at each visit, vital signs `X`, `Y`, and `Z` are measured. However, sometime patients miss a scheduled appointment, so visit times are not evenly-spaced. Moreover, at certain occasions (say, 30% of the time), a particular vital sign measurement is missed (due to technical difficulties or other causes). The data may appear as follows 
+
+```{r}
+#| code-fold: true
+
+patient_visit_data <- tibble(
+  ID        = rep(1:10, 10),
+  VisitDate = sample(seq(as.Date('2022-01-01'), as.Date('2022-06-30'), by = "day"), 100, replace=TRUE), 
+  X         = rnorm(100, 30, 10),
+  Y         = rnorm(100, 83, 20),
+  Z         = rnorm(100, 50, 5) 
+  ) |> 
+  
+  # assume 30% missing rate for each variable
+  mutate_at(
+    vars(X,Y,Z), 
+    \(.x) if_else(sample(x=0:1, size=100, replace=TRUE, prob = c(.70,.30)) == 1, NA, .x)) |> 
+  
+  arrange(ID, VisitDate) |> 
+  
+  mutate_if(is.numeric, round)
+
+```
+
+::: callout-tip
+Click `Code` to reveal the simulation script. 
+:::
+
+```{r}
+patient_visit_data |> filter(ID == 3) |> kable()
+
+```
+
+
+## Map for window aggregations 
+
+Suppose our set of tasks are to compute at *each* scheduled visit
+
+  1. The *average* all `X` values taken within the last 30 days (rolling average of available values)
+  2. The *maximum* `Y` value recorded so far, but excluded the current `Y`
+  3. The current value of `Z`, or the most recent one recorded within the last 10 days 
+
+
+```{r}
+
+
+patient_visit_with_window_summary <- patient_visit_data |> 
+  
+  group_by(ID) |> 
+  mutate(
+    
+    X_30day_average = 
+      map_dbl(VisitDate, 
+        \(.v) mean(X[VisitDate <= .v & VisitDate >= .v - 30], na.rm = TRUE)),
+    
+    Y_max = 
+      map_dbl(VisitDate, 
+        \(.v) max(Y[VisitDate <= .v], na.rm = TRUE)),
+    
+    Z_recent = 
+      map_dbl(VisitDate, 
+        \(.v) last(Z[VisitDate <= .v - 10], na_rm = TRUE))
+    )
+```
+
+```{r}
+#| code-fold: true
+
+patient_visit_with_window_summary |> filter(ID == 3 | ID == 7) |>
+  kable(n = 20) |> column_spec(1:7, border_left = TRUE, border_right = TRUE)
+```
+
+::: callout-important
+When supplying arguments for `na.rm` or `na_rm`, always provide the full values `TRUE` or `FALSE` instead of using the abbreviated shortcut `T` or `F`. 
+:::
+
+To help spot-check the results (particularly for the rolling 30-day look-back averages), use the general `map` to get list of values meeting the condition at *each visit* (list of lists!)
+
+```{r}
+
+patient_visit_with_window_summary <- patient_visit_data |> 
+  
+  group_by(ID) |> 
+  mutate(
+    
+    Xs_30day = map(VisitDate, \(.v) X[VisitDate <= .v & VisitDate >= .v - 30]), 
+    
+    X_30day_average = 
+      map_dbl(VisitDate, 
+        \(.v) mean(X[VisitDate <= .v & VisitDate >= .v - 30], na.rm = TRUE)),
+    
+    Y_max = 
+      map_dbl(VisitDate, 
+        \(.v) max(Y[VisitDate <= .v], na.rm = TRUE)),
+    
+    Z_recent = 
+      map_dbl(VisitDate, 
+        \(.v) last(Z[VisitDate <= .v], na_rm = TRUE))
+    
+    ) 
+```
+
+```{r}
+#| code-fold: true
+patient_visit_with_window_summary |> filter(ID == 3 | ID == 7) |>
+    kable(n = 20) |> column_spec(1:8, border_left = TRUE, border_right = TRUE)
+
+```
+
+## Composite scores with missing values 
+
+We want to compute and track some composite score at each visit. We would like to use the value taken at the visit time, but we're willing to impute with the closest value 30 days prior. Our composite measure is $X + Y$.
+
+```{r}
+
+patient_visit_data |> 
+  group_by(ID) |> 
+  mutate(
+    XplusY = map_dbl(VisitDate, 
+      \(.v) 
+        last(
+          X[VisitDate <= .v & VisitDate >= .v - 30], na_rm = TRUE) 
+        +
+        last(
+          Y[VisitDate <= .v & VisitDate >= .v - 30], na_rm = TRUE))
+    
+    ) |> 
+  
+  filter(ID == 2 | ID == 8) |> kable(n = 20)
+
+
+```
+
+::: callout-tip
+The function `last` has an argument called `na_rm` with default value `False`. Here, we want the last **available** measurement recorded when **sorted** by descending date --- which will correspond to the most recent record. 
+:::
+
