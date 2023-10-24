@@ -191,8 +191,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </ul></li>
   <li><a href="#patient-look-back-windows-in-medical-trials" id="toc-patient-look-back-windows-in-medical-trials" class="nav-link" data-scroll-target="#patient-look-back-windows-in-medical-trials">Patient look-back windows in medical trials</a>
   <ul class="collapse">
-  <li><a href="#map-for-window-aggregations" id="toc-map-for-window-aggregations" class="nav-link" data-scroll-target="#map-for-window-aggregations">Map for window aggregations</a></li>
   <li><a href="#composite-scores-with-missing-values" id="toc-composite-scores-with-missing-values" class="nav-link" data-scroll-target="#composite-scores-with-missing-values">Composite scores with missing values</a></li>
+  <li><a href="#map-for-window-aggregations" id="toc-map-for-window-aggregations" class="nav-link" data-scroll-target="#map-for-window-aggregations">Map for window aggregations</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -394,7 +394,7 @@ Note
 
 </div>
 </div>
-<p>Now, was this expected? The purpose of <code>mutate</code> is to glue the outputs of calling functions back onto the original data table. But as <code>sum</code> operates on a <em>list</em> input and returns a <em>scalar</em> output, <code>mutate</code> does the work of broadcasting the scalar into a vector of the right dimensions and does the re-merging. The key observation is <code>mutate</code> handles the intermediate steps, so that we abstract <code>mutate</code>ations as <strong>vectorized functions</strong> taking <em>vector</em> arguments (supply by the <code>data.frame</code> column names) and returning <em>vector outputs</em> for transformation.</p>
+<p>Now, was this expected? The purpose of <code>mutate</code> is to glue the outputs of calling functions back onto the original data table. But as <code>sum</code> operates on a <em>list</em> input and returns a <em>scalar</em> output, <code>mutate</code> does the work of broadcasting the scalar into a vector of the right dimensions and does the re-merging. The key observation is <code>mutate</code> handles the intermediate steps, so that we abstract <code>mutate</code>ations as <strong>vectorizing functions</strong> taking <em>vector</em> values (scoped by the <code>data.frame</code> column names) and returning <em>vector outputs</em> for transformation.</p>
 <div class="callout callout-style-default callout-tip callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -484,7 +484,7 @@ Important
 </section>
 <section id="using-map" class="level1">
 <h1>Using <code>map</code></h1>
-<p>In essence, <code>map</code> allows us to call a function repeatedly over a list of <em>input arguments</em>. It loops or iterates over the input values, and collects the call results into a new list. When used within the <code>tidyverse</code> wrapped around <code>mutate</code>, <code>map</code>ping provides <em>nested looping like behavior</em>, where we need to process the values along one or more columns simultaneously (as inputs) while calling some other complex operation.</p>
+<p>In essence, <code>map</code> allows us to call a function repeatedly over a list of <em>input arguments</em>. It loops or iterates over the input values, and collects the call results into a new list. When used within the <code>tidyverse</code> wrapped around <code>mutate</code>, <code>map</code>ping provides <strong>nested looping like behavior</strong>, where we need to process the values along one or more columns <em>as inputs</em> to some other complex operation.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -518,7 +518,7 @@ Note
 <pre><code>[1] 0</code></pre>
 </div>
 </div>
-<p>Now to achieve this for all values in our threshold list, we use <code>map_dbl</code> — the first argument is the list input we want to <em>loop over</em> (threshold values), and the second argument is a anonymous function over <code>X</code> and the threshold argument <code>.t</code>. The final result here will match the dimensions of the argument list that we want to run the function over.</p>
+<p>To execute this for all values in our threshold list, we use <code>map_dbl</code> — the first argument is the list of input values we want to <em>loop over</em> (threshold values), and the second argument is an anonymous function over <code>X</code> and parameterized by the threshold argument <code>.t</code>. The final result will match the dimensions of the argument list that we want to run the function over (of size 4).</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">map_dbl</span>(T, \(.t) <span class="fu">sum</span>(X <span class="sc">&lt;</span> .t))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -667,50 +667,287 @@ Tip
 
 </div>
 </div>
+<section id="composite-scores-with-missing-values" class="level2">
+<h2 class="anchored" data-anchor-id="composite-scores-with-missing-values">Composite scores with missing values</h2>
+<p>We want to compute and track some composite score at each visit. We would like to use the value taken at the visit time, but we’re willing to impute with the closest value 30 days prior. Our composite measure is <span class="math inline">\(X + Y\)</span>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="annotated-cell-13"><pre class="sourceCode r code-annotation-code code-with-copy code-annotated"><code class="sourceCode r"><span id="annotated-cell-13-1"><a href="#annotated-cell-13-1" aria-hidden="true" tabindex="-1"></a>patient_visit_data <span class="sc">|&gt;</span> </span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-13" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-13-2" class="code-annotation-target"><a href="#annotated-cell-13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(ID) <span class="sc">|&gt;</span></span>
+<span id="annotated-cell-13-3"><a href="#annotated-cell-13-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-13" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-13-4" class="code-annotation-target"><a href="#annotated-cell-13-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">XplusY =</span> <span class="fu">map_dbl</span>(VisitDate,</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-13" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-13-5" class="code-annotation-target"><a href="#annotated-cell-13-5" aria-hidden="true" tabindex="-1"></a>      \(.v)</span>
+<span id="annotated-cell-13-6"><a href="#annotated-cell-13-6" aria-hidden="true" tabindex="-1"></a>        <span class="fu">last</span>(</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-13" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-13-7" class="code-annotation-target"><a href="#annotated-cell-13-7" aria-hidden="true" tabindex="-1"></a>          X[VisitDate <span class="sc">&lt;=</span> .v <span class="sc">&amp;</span> VisitDate <span class="sc">&gt;=</span> .v <span class="sc">-</span> <span class="dv">30</span>], <span class="at">na_rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="annotated-cell-13-8"><a href="#annotated-cell-13-8" aria-hidden="true" tabindex="-1"></a>        <span class="sc">+</span></span>
+<span id="annotated-cell-13-9"><a href="#annotated-cell-13-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">last</span>(</span>
+<span id="annotated-cell-13-10"><a href="#annotated-cell-13-10" aria-hidden="true" tabindex="-1"></a>          Y[VisitDate <span class="sc">&lt;=</span> .v <span class="sc">&amp;</span> VisitDate <span class="sc">&gt;=</span> .v <span class="sc">-</span> <span class="dv">30</span>], <span class="at">na_rm =</span> <span class="cn">TRUE</span>))</span>
+<span id="annotated-cell-13-11"><a href="#annotated-cell-13-11" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="annotated-cell-13-12"><a href="#annotated-cell-13-12" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">|&gt;</span> </span>
+<span id="annotated-cell-13-13"><a href="#annotated-cell-13-13" aria-hidden="true" tabindex="-1"></a>  </span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-13" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-13-14" class="code-annotation-target"><a href="#annotated-cell-13-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(ID <span class="sc">==</span> <span class="dv">2</span> <span class="sc">|</span> ID <span class="sc">==</span> <span class="dv">8</span>) <span class="sc">|&gt;</span></span>
+<span id="annotated-cell-13-15"><a href="#annotated-cell-13-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">n =</span> <span class="dv">20</span>)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-annotation">
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-13" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-annotation="1" data-code-cell="annotated-cell-13" data-code-lines="2">Transform the data by processing the variables <em>within patient</em><br>
+</span>
+</dd>
+<dt data-target-cell="annotated-cell-13" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-annotation="2" data-code-cell="annotated-cell-13" data-code-lines="4">Using <code>map_dbl</code> to make our composite score of <code>X</code> and <code>Y</code>. Its first argument is the <code>VisitDate</code> column — the list of values we want to loop through or use as <em>input values to our user-defined function</em></span>
+</dd>
+<dt data-target-cell="annotated-cell-13" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-annotation="3" data-code-cell="annotated-cell-13" data-code-lines="5">The head of our user-defined function, which will be represented as an anonymous function passed entirely into the <em>second</em> argument of <code>map_dbl</code>. The function is parameterized by the dummy variable <code>.v</code> that will be drawn from the input list</span>
+</dd>
+<dt data-target-cell="annotated-cell-13" data-target-annotation="4">4</dt>
+<dd>
+<span data-code-annotation="4" data-code-cell="annotated-cell-13" data-code-lines="7,10">The body of our user-defined anonymous function. Observe it’s a function of the environment variables <code>X</code> and <code>VisitDate</code> scoped from the data.frame context. Note <code>VisitDate</code> used here is independent and different from outer use also in <code>map_dbl</code>!</span>
+</dd>
+<dt data-target-cell="annotated-cell-13" data-target-annotation="5">5</dt>
+<dd>
+<span data-code-annotation="5" data-code-cell="annotated-cell-13" data-code-lines="14">Examine the outputs for patients 2 and 8</span>
+</dd>
+</dl>
+</div>
+<div class="cell-output-display">
+<table data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;" data-quarto-table-cell-role="th">ID</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">VisitDate</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">X</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Y</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">Z</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">XplusY</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-01-12</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">92</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">116</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-01-15</td>
+<td style="text-align: right;">34</td>
+<td style="text-align: right;">113</td>
+<td style="text-align: right;">47</td>
+<td style="text-align: right;">147</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-02-20</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">103</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-03-03</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-03-15</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">93</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-04-13</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">52</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-05-04</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">55</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-05-13</td>
+<td style="text-align: right;">31</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-06-25</td>
+<td style="text-align: right;">28</td>
+<td style="text-align: right;">88</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">116</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">2022-06-28</td>
+<td style="text-align: right;">44</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">59</td>
+<td style="text-align: right;">132</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">2022-01-02</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">2022-01-11</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">74</td>
+<td style="text-align: right;">56</td>
+<td style="text-align: right;">98</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">2022-01-25</td>
+<td style="text-align: right;">28</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">41</td>
+<td style="text-align: right;">102</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">2022-02-03</td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;">93</td>
+<td style="text-align: right;">59</td>
+<td style="text-align: right;">133</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">2022-02-07</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">133</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">2022-04-16</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">66</td>
+<td style="text-align: right;">52</td>
+<td style="text-align: right;">96</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">2022-04-16</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">49</td>
+<td style="text-align: right;">96</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">2022-05-12</td>
+<td style="text-align: right;">42</td>
+<td style="text-align: right;">93</td>
+<td style="text-align: right;">49</td>
+<td style="text-align: right;">135</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">2022-05-15</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">102</td>
+<td style="text-align: right;">52</td>
+<td style="text-align: right;">144</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">2022-05-23</td>
+<td style="text-align: right;">27</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">129</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The function <code>last</code> has an argument called <code>na_rm</code> with default value <code>False</code>. Here, we want the last <strong>available</strong> measurement recorded when <strong>sorted</strong> by descending date — which will correspond to the most recent record.</p>
+</div>
+</div>
+</section>
 <section id="map-for-window-aggregations" class="level2">
 <h2 class="anchored" data-anchor-id="map-for-window-aggregations">Map for window aggregations</h2>
-<p>Suppose our set of tasks are to compute at <em>each</em> scheduled visit</p>
+<p>Suppose our next set of tasks are to compute at <em>each</em> scheduled visit</p>
 <ol type="1">
 <li>The <em>average</em> all <code>X</code> values taken within the last 30 days (rolling average of available values)</li>
 <li>The <em>maximum</em> <code>Y</code> value recorded so far, but excluded the current <code>Y</code></li>
 <li>The <em>current</em> value of <code>Z</code>, or the most recent one recorded within the last 10 days</li>
 </ol>
 <div class="cell">
-<div class="sourceCode cell-code" id="annotated-cell-13"><pre class="sourceCode r code-annotation-code code-with-copy code-annotated"><code class="sourceCode r"><span id="annotated-cell-13-1"><a href="#annotated-cell-13-1" aria-hidden="true" tabindex="-1"></a>patient_visit_with_window_summary <span class="ot">&lt;-</span> patient_visit_data <span class="sc">|&gt;</span> </span>
-<span id="annotated-cell-13-2"><a href="#annotated-cell-13-2" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="annotated-cell-13-3"><a href="#annotated-cell-13-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(ID) <span class="sc">|&gt;</span> </span>
-<span id="annotated-cell-13-4"><a href="#annotated-cell-13-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="annotated-cell-13-5"><a href="#annotated-cell-13-5" aria-hidden="true" tabindex="-1"></a>    </span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-13" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-13-6" class="code-annotation-target"><a href="#annotated-cell-13-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">X_30day_average =</span></span>
-<span id="annotated-cell-13-7"><a href="#annotated-cell-13-7" aria-hidden="true" tabindex="-1"></a>      <span class="fu">map_dbl</span>(VisitDate, </span>
-<span id="annotated-cell-13-8"><a href="#annotated-cell-13-8" aria-hidden="true" tabindex="-1"></a>        \(.v) <span class="fu">mean</span>(X[VisitDate <span class="sc">&lt;=</span> .v <span class="sc">&amp;</span> VisitDate <span class="sc">&gt;=</span> .v <span class="sc">-</span> <span class="dv">30</span>], <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
-<span id="annotated-cell-13-9"><a href="#annotated-cell-13-9" aria-hidden="true" tabindex="-1"></a>    </span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-13" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-13-10" class="code-annotation-target"><a href="#annotated-cell-13-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">Y_max =</span></span>
-<span id="annotated-cell-13-11"><a href="#annotated-cell-13-11" aria-hidden="true" tabindex="-1"></a>      <span class="fu">map_dbl</span>(VisitDate, </span>
-<span id="annotated-cell-13-12"><a href="#annotated-cell-13-12" aria-hidden="true" tabindex="-1"></a>        \(.v) <span class="fu">max</span>(Y[VisitDate <span class="sc">&lt;=</span> .v], <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
-<span id="annotated-cell-13-13"><a href="#annotated-cell-13-13" aria-hidden="true" tabindex="-1"></a>    </span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-13" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-13-14" class="code-annotation-target"><a href="#annotated-cell-13-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">Z_recent =</span></span>
-<span id="annotated-cell-13-15"><a href="#annotated-cell-13-15" aria-hidden="true" tabindex="-1"></a>      <span class="fu">map_dbl</span>(VisitDate, </span>
-<span id="annotated-cell-13-16"><a href="#annotated-cell-13-16" aria-hidden="true" tabindex="-1"></a>        \(.v) <span class="fu">last</span>(Z[VisitDate <span class="sc">&lt;=</span> .v <span class="sc">&amp;</span> VisitDate <span class="sc">&gt;=</span> .v <span class="sc">-</span> <span class="dv">10</span>], <span class="at">na_rm =</span> <span class="cn">TRUE</span>))</span>
-<span id="annotated-cell-13-17"><a href="#annotated-cell-13-17" aria-hidden="true" tabindex="-1"></a>    )</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="annotated-cell-14"><pre class="sourceCode r code-annotation-code code-with-copy code-annotated"><code class="sourceCode r"><span id="annotated-cell-14-1"><a href="#annotated-cell-14-1" aria-hidden="true" tabindex="-1"></a>patient_visit_with_window_summary <span class="ot">&lt;-</span> patient_visit_data <span class="sc">|&gt;</span> </span>
+<span id="annotated-cell-14-2"><a href="#annotated-cell-14-2" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="annotated-cell-14-3"><a href="#annotated-cell-14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(ID) <span class="sc">|&gt;</span> </span>
+<span id="annotated-cell-14-4"><a href="#annotated-cell-14-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="annotated-cell-14-5"><a href="#annotated-cell-14-5" aria-hidden="true" tabindex="-1"></a>    </span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-14" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-14-6" class="code-annotation-target"><a href="#annotated-cell-14-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">X_30day_average =</span></span>
+<span id="annotated-cell-14-7"><a href="#annotated-cell-14-7" aria-hidden="true" tabindex="-1"></a>      <span class="fu">map_dbl</span>(VisitDate, </span>
+<span id="annotated-cell-14-8"><a href="#annotated-cell-14-8" aria-hidden="true" tabindex="-1"></a>        \(.v) <span class="fu">mean</span>(X[VisitDate <span class="sc">&lt;=</span> .v <span class="sc">&amp;</span> VisitDate <span class="sc">&gt;=</span> .v <span class="sc">-</span> <span class="dv">30</span>], <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
+<span id="annotated-cell-14-9"><a href="#annotated-cell-14-9" aria-hidden="true" tabindex="-1"></a>    </span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-14" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-14-10" class="code-annotation-target"><a href="#annotated-cell-14-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">Y_max =</span></span>
+<span id="annotated-cell-14-11"><a href="#annotated-cell-14-11" aria-hidden="true" tabindex="-1"></a>      <span class="fu">map_dbl</span>(VisitDate, </span>
+<span id="annotated-cell-14-12"><a href="#annotated-cell-14-12" aria-hidden="true" tabindex="-1"></a>        \(.v) <span class="fu">max</span>(Y[VisitDate <span class="sc">&lt;=</span> .v], <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
+<span id="annotated-cell-14-13"><a href="#annotated-cell-14-13" aria-hidden="true" tabindex="-1"></a>    </span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-14" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-14-14" class="code-annotation-target"><a href="#annotated-cell-14-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">Z_recent =</span></span>
+<span id="annotated-cell-14-15"><a href="#annotated-cell-14-15" aria-hidden="true" tabindex="-1"></a>      <span class="fu">map_dbl</span>(VisitDate, </span>
+<span id="annotated-cell-14-16"><a href="#annotated-cell-14-16" aria-hidden="true" tabindex="-1"></a>        \(.v) <span class="fu">last</span>(Z[VisitDate <span class="sc">&lt;=</span> .v <span class="sc">&amp;</span> VisitDate <span class="sc">&gt;=</span> .v <span class="sc">-</span> <span class="dv">10</span>], <span class="at">na_rm =</span> <span class="cn">TRUE</span>))</span>
+<span id="annotated-cell-14-17"><a href="#annotated-cell-14-17" aria-hidden="true" tabindex="-1"></a>    )</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-annotation">
 <dl class="code-annotation-container-grid">
-<dt data-target-cell="annotated-cell-13" data-target-annotation="1">1</dt>
+<dt data-target-cell="annotated-cell-14" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-annotation="1" data-code-lines="6" data-code-cell="annotated-cell-13">30 day average of <code>X</code></span>
+<span data-code-annotation="1" data-code-cell="annotated-cell-14" data-code-lines="6">30 day average of <code>X</code></span>
 </dd>
-<dt data-target-cell="annotated-cell-13" data-target-annotation="2">2</dt>
+<dt data-target-cell="annotated-cell-14" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-annotation="2" data-code-lines="10" data-code-cell="annotated-cell-13">Cumulative maximum of <code>Y</code></span>
+<span data-code-annotation="2" data-code-cell="annotated-cell-14" data-code-lines="10">Cumulative maximum of <code>Y</code></span>
 </dd>
-<dt data-target-cell="annotated-cell-13" data-target-annotation="3">3</dt>
+<dt data-target-cell="annotated-cell-14" data-target-annotation="3">3</dt>
 <dd>
-<span data-code-annotation="3" data-code-lines="14" data-code-cell="annotated-cell-13">Most recent `Z within the last 10 days</span>
+<span data-code-annotation="3" data-code-cell="annotated-cell-14" data-code-lines="14">Most recent <code>Z</code> within the last 10 days</span>
 </dd>
 </dl>
 </div>
 </div>
-<p>For each variable, we use <code>map_dbl</code> where the first argument is the <code>VisitDate</code> column (processed within patient) that we want to iterate over as inputs. The user-defined anonymous functions passed into the second argument of <code>map_dbl</code> are functions of the global variables <code>X</code>, <code>Y</code>, or <code>Z</code>, subset by <code>VisitDate</code> (also scoped separately from the data.frame context) and the dummy variable <code>.v</code>. They eventually reduce the filtered variables using the aggregation functions <code>mean</code>, <code>max</code>, and <code>last</code>.</p>
+<p>For each variable, we use <code>map_dbl</code> where the first argument is the <code>VisitDate</code> column (processed within patient) that we want to iterate over as inputs. The user-defined anonymous functions passed into the second argument of <code>map_dbl</code> are functions over the environment variables <code>X</code>, <code>Y</code>, or <code>Z</code>, subset by <code>VisitDate</code> (also scoped separately from the data.frame context) and the dummy variable <code>.v</code>. They eventually reduce the filtered variables using the aggregation functions <code>mean</code>, <code>max</code>, and <code>last</code>.</p>
 <div class="cell">
 <details>
 <summary>Code</summary>
@@ -953,32 +1190,32 @@ Important
 </div>
 <p>To help spot-check the results (particularly for the rolling 30-day look-back averages), use the general <code>map</code> to get a list of values meeting the condition at <em>each visit</em> (list of lists!) prior to aggregation by <code>mean</code>. For <code>Z_recent</code>, you may want to validate that the 10-day look-back is working as expected.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="annotated-cell-15"><pre class="sourceCode r code-annotation-code code-with-copy code-annotated"><code class="sourceCode r"><span id="annotated-cell-15-1"><a href="#annotated-cell-15-1" aria-hidden="true" tabindex="-1"></a>patient_visit_with_window_summary <span class="ot">&lt;-</span> patient_visit_data <span class="sc">|&gt;</span> </span>
-<span id="annotated-cell-15-2"><a href="#annotated-cell-15-2" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="annotated-cell-15-3"><a href="#annotated-cell-15-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(ID) <span class="sc">|&gt;</span></span>
-<span id="annotated-cell-15-4"><a href="#annotated-cell-15-4" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="annotated-cell-15-5"><a href="#annotated-cell-15-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="annotated-cell-15-6"><a href="#annotated-cell-15-6" aria-hidden="true" tabindex="-1"></a>    </span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-15" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-15-7" class="code-annotation-target"><a href="#annotated-cell-15-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">Xs_30day =</span> <span class="fu">map</span>(VisitDate, \(.v) X[VisitDate <span class="sc">&lt;=</span> .v <span class="sc">&amp;</span> VisitDate <span class="sc">&gt;=</span> .v <span class="sc">-</span> <span class="dv">30</span>]),</span>
-<span id="annotated-cell-15-8"><a href="#annotated-cell-15-8" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="annotated-cell-15-9"><a href="#annotated-cell-15-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">X_30day_average =</span> </span>
-<span id="annotated-cell-15-10"><a href="#annotated-cell-15-10" aria-hidden="true" tabindex="-1"></a>      <span class="fu">map_dbl</span>(VisitDate, </span>
-<span id="annotated-cell-15-11"><a href="#annotated-cell-15-11" aria-hidden="true" tabindex="-1"></a>        \(.v) <span class="fu">mean</span>(X[VisitDate <span class="sc">&lt;=</span> .v <span class="sc">&amp;</span> VisitDate <span class="sc">&gt;=</span> .v <span class="sc">-</span> <span class="dv">30</span>], <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
-<span id="annotated-cell-15-12"><a href="#annotated-cell-15-12" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="annotated-cell-15-13"><a href="#annotated-cell-15-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">Y_max =</span> </span>
-<span id="annotated-cell-15-14"><a href="#annotated-cell-15-14" aria-hidden="true" tabindex="-1"></a>      <span class="fu">map_dbl</span>(VisitDate, </span>
-<span id="annotated-cell-15-15"><a href="#annotated-cell-15-15" aria-hidden="true" tabindex="-1"></a>        \(.v) <span class="fu">max</span>(Y[VisitDate <span class="sc">&lt;=</span> .v], <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
-<span id="annotated-cell-15-16"><a href="#annotated-cell-15-16" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="annotated-cell-15-17"><a href="#annotated-cell-15-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">Z_recent =</span> </span>
-<span id="annotated-cell-15-18"><a href="#annotated-cell-15-18" aria-hidden="true" tabindex="-1"></a>      <span class="fu">map_dbl</span>(VisitDate, </span>
-<span id="annotated-cell-15-19"><a href="#annotated-cell-15-19" aria-hidden="true" tabindex="-1"></a>        \(.v) <span class="fu">last</span>(Z[VisitDate <span class="sc">&lt;=</span> .v <span class="sc">&amp;</span> VisitDate <span class="sc">&gt;=</span> .v <span class="sc">-</span> <span class="dv">10</span>], <span class="at">na_rm =</span> <span class="cn">TRUE</span>))</span>
-<span id="annotated-cell-15-20"><a href="#annotated-cell-15-20" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="annotated-cell-15-21"><a href="#annotated-cell-15-21" aria-hidden="true" tabindex="-1"></a>    ) </span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="annotated-cell-16"><pre class="sourceCode r code-annotation-code code-with-copy code-annotated"><code class="sourceCode r"><span id="annotated-cell-16-1"><a href="#annotated-cell-16-1" aria-hidden="true" tabindex="-1"></a>patient_visit_with_window_summary <span class="ot">&lt;-</span> patient_visit_data <span class="sc">|&gt;</span> </span>
+<span id="annotated-cell-16-2"><a href="#annotated-cell-16-2" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="annotated-cell-16-3"><a href="#annotated-cell-16-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(ID) <span class="sc">|&gt;</span></span>
+<span id="annotated-cell-16-4"><a href="#annotated-cell-16-4" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="annotated-cell-16-5"><a href="#annotated-cell-16-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="annotated-cell-16-6"><a href="#annotated-cell-16-6" aria-hidden="true" tabindex="-1"></a>    </span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-16" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-16-7" class="code-annotation-target"><a href="#annotated-cell-16-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">Xs_30day =</span> <span class="fu">map</span>(VisitDate, \(.v) X[VisitDate <span class="sc">&lt;=</span> .v <span class="sc">&amp;</span> VisitDate <span class="sc">&gt;=</span> .v <span class="sc">-</span> <span class="dv">30</span>]),</span>
+<span id="annotated-cell-16-8"><a href="#annotated-cell-16-8" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="annotated-cell-16-9"><a href="#annotated-cell-16-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">X_30day_average =</span> </span>
+<span id="annotated-cell-16-10"><a href="#annotated-cell-16-10" aria-hidden="true" tabindex="-1"></a>      <span class="fu">map_dbl</span>(VisitDate, </span>
+<span id="annotated-cell-16-11"><a href="#annotated-cell-16-11" aria-hidden="true" tabindex="-1"></a>        \(.v) <span class="fu">mean</span>(X[VisitDate <span class="sc">&lt;=</span> .v <span class="sc">&amp;</span> VisitDate <span class="sc">&gt;=</span> .v <span class="sc">-</span> <span class="dv">30</span>], <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
+<span id="annotated-cell-16-12"><a href="#annotated-cell-16-12" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="annotated-cell-16-13"><a href="#annotated-cell-16-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">Y_max =</span> </span>
+<span id="annotated-cell-16-14"><a href="#annotated-cell-16-14" aria-hidden="true" tabindex="-1"></a>      <span class="fu">map_dbl</span>(VisitDate, </span>
+<span id="annotated-cell-16-15"><a href="#annotated-cell-16-15" aria-hidden="true" tabindex="-1"></a>        \(.v) <span class="fu">max</span>(Y[VisitDate <span class="sc">&lt;=</span> .v], <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
+<span id="annotated-cell-16-16"><a href="#annotated-cell-16-16" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="annotated-cell-16-17"><a href="#annotated-cell-16-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">Z_recent =</span> </span>
+<span id="annotated-cell-16-18"><a href="#annotated-cell-16-18" aria-hidden="true" tabindex="-1"></a>      <span class="fu">map_dbl</span>(VisitDate, </span>
+<span id="annotated-cell-16-19"><a href="#annotated-cell-16-19" aria-hidden="true" tabindex="-1"></a>        \(.v) <span class="fu">last</span>(Z[VisitDate <span class="sc">&lt;=</span> .v <span class="sc">&amp;</span> VisitDate <span class="sc">&gt;=</span> .v <span class="sc">-</span> <span class="dv">10</span>], <span class="at">na_rm =</span> <span class="cn">TRUE</span>))</span>
+<span id="annotated-cell-16-20"><a href="#annotated-cell-16-20" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="annotated-cell-16-21"><a href="#annotated-cell-16-21" aria-hidden="true" tabindex="-1"></a>    ) </span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-annotation">
 <dl class="code-annotation-container-grid">
-<dt data-target-cell="annotated-cell-15" data-target-annotation="1">1</dt>
+<dt data-target-cell="annotated-cell-16" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-annotation="1" data-code-lines="7" data-code-cell="annotated-cell-15">Now our anonymous function filters <code>X</code> using the <code>VisitDate</code> column and the index visit date <code>.v</code>, but does not summarize the vector further. Instead of returning a <code>dbl</code> value at each execution (like <code>map_dbl</code>), it must return back an entire list at each call. Hence, in the end <code>map</code> returns a vector of lists.</span>
+<span data-code-annotation="1" data-code-cell="annotated-cell-16" data-code-lines="7">Now our anonymous function filters <code>X</code> using the <code>VisitDate</code> column and the index visit date <code>.v</code>, but does not summarize the vector further. Instead of returning a <code>dbl</code> value at each execution (like <code>map_dbl</code>), it must return back an entire list at each call. Hence, in the end <code>map</code> returns a vector of lists.</span>
 </dd>
 </dl>
 </div>
@@ -1229,243 +1466,6 @@ Important
 </table>
 
 
-</div>
-</div>
-</section>
-<section id="composite-scores-with-missing-values" class="level2">
-<h2 class="anchored" data-anchor-id="composite-scores-with-missing-values">Composite scores with missing values</h2>
-<p>We want to compute and track some composite score at each visit. We would like to use the value taken at the visit time, but we’re willing to impute with the closest value 30 days prior. Our composite measure is <span class="math inline">\(X + Y\)</span>.</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="annotated-cell-17"><pre class="sourceCode r code-annotation-code code-with-copy code-annotated"><code class="sourceCode r"><span id="annotated-cell-17-1"><a href="#annotated-cell-17-1" aria-hidden="true" tabindex="-1"></a>patient_visit_data <span class="sc">|&gt;</span> </span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-17-2" class="code-annotation-target"><a href="#annotated-cell-17-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(ID) <span class="sc">|&gt;</span></span>
-<span id="annotated-cell-17-3"><a href="#annotated-cell-17-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-17-4" class="code-annotation-target"><a href="#annotated-cell-17-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">XplusY =</span> <span class="fu">map_dbl</span>(VisitDate,</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-17-5" class="code-annotation-target"><a href="#annotated-cell-17-5" aria-hidden="true" tabindex="-1"></a>      \(.v)</span>
-<span id="annotated-cell-17-6"><a href="#annotated-cell-17-6" aria-hidden="true" tabindex="-1"></a>        <span class="fu">last</span>(</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-17-7" class="code-annotation-target"><a href="#annotated-cell-17-7" aria-hidden="true" tabindex="-1"></a>          X[VisitDate <span class="sc">&lt;=</span> .v <span class="sc">&amp;</span> VisitDate <span class="sc">&gt;=</span> .v <span class="sc">-</span> <span class="dv">30</span>], <span class="at">na_rm =</span> <span class="cn">TRUE</span>)</span>
-<span id="annotated-cell-17-8"><a href="#annotated-cell-17-8" aria-hidden="true" tabindex="-1"></a>        <span class="sc">+</span></span>
-<span id="annotated-cell-17-9"><a href="#annotated-cell-17-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">last</span>(</span>
-<span id="annotated-cell-17-10"><a href="#annotated-cell-17-10" aria-hidden="true" tabindex="-1"></a>          Y[VisitDate <span class="sc">&lt;=</span> .v <span class="sc">&amp;</span> VisitDate <span class="sc">&gt;=</span> .v <span class="sc">-</span> <span class="dv">30</span>], <span class="at">na_rm =</span> <span class="cn">TRUE</span>))</span>
-<span id="annotated-cell-17-11"><a href="#annotated-cell-17-11" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="annotated-cell-17-12"><a href="#annotated-cell-17-12" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">|&gt;</span> </span>
-<span id="annotated-cell-17-13"><a href="#annotated-cell-17-13" aria-hidden="true" tabindex="-1"></a>  </span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-17-14" class="code-annotation-target"><a href="#annotated-cell-17-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(ID <span class="sc">==</span> <span class="dv">2</span> <span class="sc">|</span> ID <span class="sc">==</span> <span class="dv">8</span>) <span class="sc">|&gt;</span></span>
-<span id="annotated-cell-17-15"><a href="#annotated-cell-17-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">n =</span> <span class="dv">20</span>)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-annotation">
-<dl class="code-annotation-container-grid">
-<dt data-target-cell="annotated-cell-17" data-target-annotation="1">1</dt>
-<dd>
-<span data-code-annotation="1" data-code-lines="2" data-code-cell="annotated-cell-17">Transform the data by processing the variables <em>within patient</em><br>
-</span>
-</dd>
-<dt data-target-cell="annotated-cell-17" data-target-annotation="2">2</dt>
-<dd>
-<span data-code-annotation="2" data-code-lines="4" data-code-cell="annotated-cell-17">Using <code>map_dbl</code> to make our composite score of <code>X</code> and <code>Y</code>. Its first argument is the <code>VisitDate</code> column — the list of values we want to loop through or use as <em>input values to our user-defined function</em></span>
-</dd>
-<dt data-target-cell="annotated-cell-17" data-target-annotation="3">3</dt>
-<dd>
-<span data-code-annotation="3" data-code-lines="5" data-code-cell="annotated-cell-17">The head of our user-defined function, which will be represented as an anonymous function passed entirely into the <em>second</em> argument of <code>map_dbl</code>. The function of dummy variable <code>.v</code> that will be drawn from the input list</span>
-</dd>
-<dt data-target-cell="annotated-cell-17" data-target-annotation="4">4</dt>
-<dd>
-<span data-code-annotation="4" data-code-lines="7,10" data-code-cell="annotated-cell-17">The body of our user-defined anonymous function. Observe it’s a function of the environment variables <code>X</code> and <code>VisitDate</code> taken from the data.frame context. Note <code>VisitDate</code> used here is independent and different from its used also in <code>map_dbl</code>!</span>
-</dd>
-<dt data-target-cell="annotated-cell-17" data-target-annotation="5">5</dt>
-<dd>
-<span data-code-annotation="5" data-code-lines="14" data-code-cell="annotated-cell-17">Examine the outputs for patients 2 and 8</span>
-</dd>
-</dl>
-</div>
-<div class="cell-output-display">
-<table data-quarto-postprocess="true" class="table table-sm table-striped small">
-<thead>
-<tr class="header">
-<th style="text-align: right;" data-quarto-table-cell-role="th">ID</th>
-<th style="text-align: left;" data-quarto-table-cell-role="th">VisitDate</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">X</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">Y</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">Z</th>
-<th style="text-align: right;" data-quarto-table-cell-role="th">XplusY</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: right;">2</td>
-<td style="text-align: left;">2022-01-12</td>
-<td style="text-align: right;">24</td>
-<td style="text-align: right;">92</td>
-<td style="text-align: right;">48</td>
-<td style="text-align: right;">116</td>
-</tr>
-<tr class="even">
-<td style="text-align: right;">2</td>
-<td style="text-align: left;">2022-01-15</td>
-<td style="text-align: right;">34</td>
-<td style="text-align: right;">113</td>
-<td style="text-align: right;">47</td>
-<td style="text-align: right;">147</td>
-</tr>
-<tr class="odd">
-<td style="text-align: right;">2</td>
-<td style="text-align: left;">2022-02-20</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">103</td>
-<td style="text-align: right;">50</td>
-<td style="text-align: right;">NA</td>
-</tr>
-<tr class="even">
-<td style="text-align: right;">2</td>
-<td style="text-align: left;">2022-03-03</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">NA</td>
-</tr>
-<tr class="odd">
-<td style="text-align: right;">2</td>
-<td style="text-align: left;">2022-03-15</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">93</td>
-<td style="text-align: right;">48</td>
-<td style="text-align: right;">NA</td>
-</tr>
-<tr class="even">
-<td style="text-align: right;">2</td>
-<td style="text-align: left;">2022-04-13</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">52</td>
-<td style="text-align: right;">NA</td>
-</tr>
-<tr class="odd">
-<td style="text-align: right;">2</td>
-<td style="text-align: left;">2022-05-04</td>
-<td style="text-align: right;">9</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">55</td>
-<td style="text-align: right;">NA</td>
-</tr>
-<tr class="even">
-<td style="text-align: right;">2</td>
-<td style="text-align: left;">2022-05-13</td>
-<td style="text-align: right;">31</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">NA</td>
-</tr>
-<tr class="odd">
-<td style="text-align: right;">2</td>
-<td style="text-align: left;">2022-06-25</td>
-<td style="text-align: right;">28</td>
-<td style="text-align: right;">88</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">116</td>
-</tr>
-<tr class="even">
-<td style="text-align: right;">2</td>
-<td style="text-align: left;">2022-06-28</td>
-<td style="text-align: right;">44</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">59</td>
-<td style="text-align: right;">132</td>
-</tr>
-<tr class="odd">
-<td style="text-align: right;">8</td>
-<td style="text-align: left;">2022-01-02</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">NA</td>
-</tr>
-<tr class="even">
-<td style="text-align: right;">8</td>
-<td style="text-align: left;">2022-01-11</td>
-<td style="text-align: right;">24</td>
-<td style="text-align: right;">74</td>
-<td style="text-align: right;">56</td>
-<td style="text-align: right;">98</td>
-</tr>
-<tr class="odd">
-<td style="text-align: right;">8</td>
-<td style="text-align: left;">2022-01-25</td>
-<td style="text-align: right;">28</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">41</td>
-<td style="text-align: right;">102</td>
-</tr>
-<tr class="even">
-<td style="text-align: right;">8</td>
-<td style="text-align: left;">2022-02-03</td>
-<td style="text-align: right;">40</td>
-<td style="text-align: right;">93</td>
-<td style="text-align: right;">59</td>
-<td style="text-align: right;">133</td>
-</tr>
-<tr class="odd">
-<td style="text-align: right;">8</td>
-<td style="text-align: left;">2022-02-07</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">50</td>
-<td style="text-align: right;">133</td>
-</tr>
-<tr class="even">
-<td style="text-align: right;">8</td>
-<td style="text-align: left;">2022-04-16</td>
-<td style="text-align: right;">5</td>
-<td style="text-align: right;">66</td>
-<td style="text-align: right;">52</td>
-<td style="text-align: right;">96</td>
-</tr>
-<tr class="odd">
-<td style="text-align: right;">8</td>
-<td style="text-align: left;">2022-04-16</td>
-<td style="text-align: right;">30</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">49</td>
-<td style="text-align: right;">96</td>
-</tr>
-<tr class="even">
-<td style="text-align: right;">8</td>
-<td style="text-align: left;">2022-05-12</td>
-<td style="text-align: right;">42</td>
-<td style="text-align: right;">93</td>
-<td style="text-align: right;">49</td>
-<td style="text-align: right;">135</td>
-</tr>
-<tr class="odd">
-<td style="text-align: right;">8</td>
-<td style="text-align: left;">2022-05-15</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">102</td>
-<td style="text-align: right;">52</td>
-<td style="text-align: right;">144</td>
-</tr>
-<tr class="even">
-<td style="text-align: right;">8</td>
-<td style="text-align: left;">2022-05-23</td>
-<td style="text-align: right;">27</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">129</td>
-</tr>
-</tbody>
-</table>
-
-
-</div>
-</div>
-<div class="callout callout-style-default callout-tip callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Tip
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>The function <code>last</code> has an argument called <code>na_rm</code> with default value <code>False</code>. Here, we want the last <strong>available</strong> measurement recorded when <strong>sorted</strong> by descending date — which will correspond to the most recent record.</p>
 </div>
 </div>
 

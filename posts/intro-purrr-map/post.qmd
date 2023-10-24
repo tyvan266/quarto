@@ -86,7 +86,7 @@ demo_data |>
 
 ```
 
-Now, was this expected? The purpose of `mutate` is to glue the outputs of calling functions back onto the original data table. But as `sum` operates on a *list* input and returns a *scalar* output, `mutate` does the work of broadcasting the scalar into a vector of the right dimensions and does the re-merging. The key observation is `mutate` handles the intermediate steps, so that we abstract `mutate`ations as **vectorized functions** taking *vector* arguments (supply by the `data.frame` column names) and returning *vector outputs* for transformation.
+Now, was this expected? The purpose of `mutate` is to glue the outputs of calling functions back onto the original data table. But as `sum` operates on a *list* input and returns a *scalar* output, `mutate` does the work of broadcasting the scalar into a vector of the right dimensions and does the re-merging. The key observation is `mutate` handles the intermediate steps, so that we abstract `mutate`ations as **vectorizing functions** taking *vector* values (scoped by the `data.frame` column names) and returning *vector outputs* for transformation.
 
 ::: callout-tip
 A **scalar** is a one-dimensional data type (compared to matrices, lists, data.frames, objects, etc.). Simply, a scalar is a singular value or number, and that's all --- 2 is scalar, but the vector containing the single element two, `[2]`, is not.
@@ -109,12 +109,12 @@ demo_data |>
 The function result is just 36, being the sum of all elements of `X` and, after increased by 1, the transformed elements of `Y`. The *vectorized* addition operator `+` is *different* from the `sum` function that returns a scalar (but also takes vector inputs).
 
 ::: callout-important
-A *vectorized* function is a *type-aware* operation --- it handles scalar inputs and vector inputs differently, returning a vector output. The variable creation function `mutate` vectorizes the operations.  
+A *vectorized* function is a *type-aware* operation --- it handles scalar inputs and vector inputs differently, returning a vector output. The variable creation function `mutate` vectorizes the operations.
 :::
 
 # Using `map`
 
-In essence, `map` allows us to call a function repeatedly over a list of *input arguments*. It loops or iterates over the input values, and collects the call results into a new list. When used within the `tidyverse` wrapped around `mutate`, `map`ping provides *nested looping like behavior*, where we need to process the values along one or more columns simultaneously (as inputs) while calling some other complex operation.
+In essence, `map` allows us to call a function repeatedly over a list of *input arguments*. It loops or iterates over the input values, and collects the call results into a new list. When used within the `tidyverse` wrapped around `mutate`, `map`ping provides **nested looping like behavior**, where we need to process the values along one or more columns *as inputs* to some other complex operation.
 
 ::: callout-note
 The `purrr` family of `map` functions provide iteration of functions over a list of inputs.
@@ -132,14 +132,14 @@ T = c(3, 10, 15, 22)
 
 ```
 
-We want to know, at some threshold of interest, how many values in `X` fall *below* the threshold. For the first threshold value 3, we can answer using `sum` with the vectorized predicate `<`  
+We want to know, at some threshold of interest, how many values in `X` fall *below* the threshold. For the first threshold value 3, we can answer using `sum` with the vectorized predicate `<`
 
 ```{r}
 X < 3
 sum(X < 3)
 ```
 
-Now to achieve this for all values in our threshold list, we use `map_dbl` --- the first argument is the list input we want to *loop over* (threshold values), and the second argument is a anonymous function over `X` and the threshold argument `.t`. The final result here will match the dimensions of the argument list that we want to run the function over.
+To execute this for all values in our threshold list, we use `map_dbl` --- the first argument is the list of input values we want to *loop over* (threshold values), and the second argument is an anonymous function over `X` and parameterized by the threshold argument `.t`. The final result will match the dimensions of the argument list that we want to run the function over (of size 4). 
 
 ```{r}
 map_dbl(T, \(.t) sum(X < .t))
@@ -147,9 +147,8 @@ map_dbl(T, \(.t) sum(X < .t))
 ```
 
 ::: callout-tip
-An **anonymous function**, one without a name, is defined in `R` by `\(.argument) { .body }`. Functions are *first-class* citizens, meaning they can be passed around as arguments into yet other functions.   
-::: 
-
+An **anonymous function**, one without a name, is defined in `R` by `\(.argument) { .body }`. Functions are *first-class* citizens, meaning they can be passed around as arguments into yet other functions.
+:::
 
 # Patient look-back windows in medical trials
 
@@ -186,9 +185,47 @@ patient_visit_data |> filter(ID == 3) |> kable()
 
 ```
 
+
+
+## Composite scores with missing values
+
+We want to compute and track some composite score at each visit. We would like to use the value taken at the visit time, but we're willing to impute with the closest value 30 days prior. Our composite measure is $X + Y$.
+
+```{r}
+
+patient_visit_data |> 
+  group_by(ID) |>                 # <1> 
+  mutate(
+    XplusY = map_dbl(VisitDate,       # <2> 
+      \(.v)                       # <3> 
+        last(
+          X[VisitDate <= .v & VisitDate >= .v - 30], na_rm = TRUE)   # <4>
+        +
+        last(
+          Y[VisitDate <= .v & VisitDate >= .v - 30], na_rm = TRUE))  # <4> 
+    
+    ) |> 
+  
+  filter(ID == 2 | ID == 8) |>       # <5> 
+  kable(n = 20)
+
+
+```
+
+1.  Transform the data by processing the variables *within patient*\
+2.  Using `map_dbl` to make our composite score of `X` and `Y`. Its first argument is the `VisitDate` column --- the list of values we want to loop through or use as *input values to our user-defined function*
+3.  The head of our user-defined function, which will be represented as an anonymous function passed entirely into the *second* argument of `map_dbl`. The function is parameterized by the dummy variable `.v` that will be drawn from the input list
+4.  The body of our user-defined anonymous function. Observe it's a function of the environment variables `X` and `VisitDate` scoped from the data.frame context. Note `VisitDate` used here is independent and different from outer use also in `map_dbl`!
+5.  Examine the outputs for patients 2 and 8
+
+::: callout-tip
+The function `last` has an argument called `na_rm` with default value `False`. Here, we want the last **available** measurement recorded when **sorted** by descending date --- which will correspond to the most recent record.
+:::
+
+
 ## Map for window aggregations
 
-Suppose our set of tasks are to compute at *each* scheduled visit
+Suppose our next set of tasks are to compute at *each* scheduled visit
 
 1.  The *average* all `X` values taken within the last 30 days (rolling average of available values)
 2.  The *maximum* `Y` value recorded so far, but excluded the current `Y`
@@ -216,12 +253,11 @@ patient_visit_with_window_summary <- patient_visit_data |>
     )
 ```
 
+1.  30 day average of `X`
+2.  Cumulative maximum of `Y`
+3.  Most recent `Z` within the last 10 days
 
-1. 30 day average of `X`
-2. Cumulative maximum of `Y`
-3. Most recent `Z within the last 10 days 
-
-For each variable, we use `map_dbl` where the first argument is the `VisitDate` column (processed within patient) that we want to iterate over as inputs. The user-defined anonymous functions passed into the second argument of `map_dbl` are functions of the global variables `X`, `Y`, or `Z`, subset by `VisitDate` (also scoped separately from the data.frame context) and the dummy variable `.v`. They eventually reduce the filtered variables using the aggregation functions `mean`, `max`, and `last`.  
+For each variable, we use `map_dbl` where the first argument is the `VisitDate` column (processed within patient) that we want to iterate over as inputs. The user-defined anonymous functions passed into the second argument of `map_dbl` are functions over the environment variables `X`, `Y`, or `Z`, subset by `VisitDate` (also scoped separately from the data.frame context) and the dummy variable `.v`. They eventually reduce the filtered variables using the aggregation functions `mean`, `max`, and `last`.
 
 ```{r}
 #| code-fold: true
@@ -234,7 +270,7 @@ patient_visit_with_window_summary |> filter(ID == 3 | ID == 7) |>
 When supplying arguments for `na.rm` or `na_rm`, always provide the full values `TRUE` or `FALSE` instead of using the abbreviated shortcut `T` or `F`.
 :::
 
-To help spot-check the results (particularly for the rolling 30-day look-back averages), use the general `map` to get a list of values meeting the condition at *each visit* (list of lists!) prior to aggregation by `mean`. For `Z_recent`, you may want to validate that the 10-day look-back is working as expected. 
+To help spot-check the results (particularly for the rolling 30-day look-back averages), use the general `map` to get a list of values meeting the condition at *each visit* (list of lists!) prior to aggregation by `mean`. For `Z_recent`, you may want to validate that the 10-day look-back is working as expected.
 
 ```{r}
 
@@ -261,7 +297,7 @@ patient_visit_with_window_summary <- patient_visit_data |>
     ) 
 ```
 
-1. Now our anonymous function filters `X` using the `VisitDate` column and the index visit date `.v`, but does not summarize the vector further. Instead of returning a `dbl` value at each execution (like `map_dbl`), it must return back an entire list at each call. Hence, in the end `map` returns a vector of lists.  
+1.  Now our anonymous function filters `X` using the `VisitDate` column and the index visit date `.v`, but does not summarize the vector further. Instead of returning a `dbl` value at each execution (like `map_dbl`), it must return back an entire list at each call. Hence, in the end `map` returns a vector of lists.
 
 ```{r}
 #| code-fold: true
@@ -270,37 +306,3 @@ patient_visit_with_window_summary |> filter(ID == 3 | ID == 7) |>
 
 ```
 
-## Composite scores with missing values
-
-We want to compute and track some composite score at each visit. We would like to use the value taken at the visit time, but we're willing to impute with the closest value 30 days prior. Our composite measure is $X + Y$.
-
-```{r}
-
-patient_visit_data |> 
-  group_by(ID) |>                 # <1> 
-  mutate(
-    XplusY = map_dbl(VisitDate,       # <2> 
-      \(.v)                       # <3> 
-        last(
-          X[VisitDate <= .v & VisitDate >= .v - 30], na_rm = TRUE)   # <4>
-        +
-        last(
-          Y[VisitDate <= .v & VisitDate >= .v - 30], na_rm = TRUE))  # <4> 
-    
-    ) |> 
-  
-  filter(ID == 2 | ID == 8) |>       # <5> 
-  kable(n = 20)
-
-
-```
-
-1. Transform the data by processing the variables *within patient*  
-2. Using `map_dbl` to make our composite score of `X` and `Y`. Its first argument is the `VisitDate` column --- the list of values we want to loop through or use as *input values to our user-defined function* 
-3. The head of our user-defined function, which will be represented as an anonymous function passed entirely into the *second* argument of `map_dbl`. The function of dummy variable `.v` that will be drawn from the input list
-4. The body of our user-defined anonymous function. Observe it's a function of the environment variables `X` and `VisitDate` taken from the data.frame context. Note `VisitDate` used here is independent and different from its used also in `map_dbl`! 
-5. Examine the outputs for patients 2 and 8 
-
-::: callout-tip
-The function `last` has an argument called `na_rm` with default value `False`. Here, we want the last **available** measurement recorded when **sorted** by descending date --- which will correspond to the most recent record.
-:::
