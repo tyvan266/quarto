@@ -10,11 +10,11 @@ editor_options:
 code-annotations: true
 ---
 
-# Introduction 
+# Introduction
 
-Life tables are common in actuarial sciences, bio-medical studies, and more generally in the field of survival analysis. They are used to track a dynamic population under observation, one where individuals may enter and leave at different times, and important for computing **at-risk** rates. In this post, we will demonstrate how to calculate simple life tables from data common in longitudinal clinical trials.
+Life tables are common in actuarial sciences, bio-medical studies, and more generally in the field of survival analysis. They are used to track a dynamic population over time, one where individuals may enter and leave at different times, and they are important for computing **at-risk** rates. In this post, we will demonstrate how to compute simple life table summaries.
 
-Suppose we have patient data on enrollment start times (beginning of follow-up) and censoring or death times. For simplicity, instead of using R *date types*, we will represent start and end times with numeric integer. This set up is similar to our first post on *gaps and islands*.
+Suppose we have patient data on enrollment start times and censoring or death times. For simplicity, instead of using R *date types*, we will represent start and end times as numeric integers. This set up is very similar to our first post on *gaps and islands*.
 
 ```{r}
 library(tidyverse)
@@ -33,7 +33,7 @@ head(patient_fup_data, n = 10) |> kable()
 
 ```
 
-Roughly, we can visualize when new patients enter and when they leave (due to death or censoring or exiting our risk set). Each segment represents a unique patient and their time segment of observation.
+Roughly, we can visualize when new patients enter and when they leave (due to death or censoring or exiting our risk set). Each segment represents a unique patient and their time under observation.
 
 ```{r}
 #| code-fold: true 
@@ -62,17 +62,17 @@ ggplot(patient_fup_data |> filter(ID <= 30)) +
 
 ```
 
-Our goal is to count over time the current number of patients under observation.
+**Our goal is to count over time the current number of patients under observation.**
 
-## Joining and cross method
+## Grid method
 
-In this method, we will highlight the merging operators `left_join` and `cross_join` (also known as *cartesian* joins).
+Our first solution will highlight the merging operators `left_join` and `cross_join` (also known as *cartesian* join).
 
 ::: callout-warning
 Cartesian joins can be computationally intensive and slow!
 :::
 
-First, we pre-define a grid for time points of interest. Suppose we want to asses counts every 60 time units. The Cartesian join will match every row in the left table (our time point reference) to every row in the right table (our patient data). Then for each patient whose observation window intersects with our index time, we add one: 
+First, we pre-define a grid of time points over which to compute our counts. Suppose we assess counts every 60 time units. In the code below, the cartesian join will match every row in the left table (our reference grid points) with every row in the right table (our patient data). Then we make an indicator for if the patient's observation window intersects the grid point, and group by time and sum them up: 
 
 ```{r}
 
@@ -90,10 +90,13 @@ surv_grid_xpatients |>
 head(survival_grid_counts) |> kable()
 ```
 
+::: callout-note
+Within the cartesian join, observe each patient can only contribute one count towards each grid time point. 
+:::
 
-## Map to the rescue 
+## (approximately) Continuous method -- Map to the rescue
 
-In this method, we do a rolling count moving through each patient. Eventually we subset on unique entry times where a change in the total population can occur. In particular, at each unique entry time when one or more new patients enroll, we add up the total number of enrollees (a simple row count works here as we cycle through the patient dataset). But we must adjust at each entry the total number lost to death or censoring up to that point. Since more than one patient may enter at the same time, the final numbers in our rolling count appears last by entry times provided we start counting in order from the first entry. 
+In this method, we do a rolling count moving through each patient. Eventually we subset on unique entry times where a change in the total population can possibly occur. In particular, at each entry time when one or more new patients enroll, we add up the total number of enrollees (a simple row count works here as we cycle through the patient data set). But we must adjust at each entry the total number lost to death or censoring up to that point. As more than one patient may enter at the same time, the final counts appear last when grouped by entry times and provided we start counting in order beginning from the earliest entry.
 
 ```{r}
 
@@ -112,7 +115,7 @@ patient_fup_data |>
 
 ```
 
-Finally, we visualize the change in our patient population size over time. 
+Finally, we visualize the change in our patient population size over time.
 
 ```{r}
 #| code-fold: true 
@@ -135,6 +138,7 @@ ggplot(N_under_observation, aes(x = startFollowUp, y = N_obs)) +
   )
 ```
 
+There is a caveat with our solution. We are not accounting for exit times that occur *between* two successive entry times. This might be okay as the total lost will be factored in at the later entry date, but if the time until a new enrollment is long, it can be misleading of the population size at risk, particularly if there was a large drop-off somewhere in-between. Related to this, we are also not seeing when everyone exits (population at risk becomes zero). These should be kept in mind when interpreting and communicating the information presented in the figure.  
 
 
 

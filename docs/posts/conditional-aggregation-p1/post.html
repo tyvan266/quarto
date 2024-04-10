@@ -184,8 +184,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="introduction" class="level1 page-columns page-full">
 <h1>Introduction</h1>
-<p>Life tables are common in actuarial sciences, bio-medical studies, and more generally in the field of survival analysis. They are used to track a dynamic population under observation, one where individuals may enter and leave at different times, and important for computing <strong>at-risk</strong> rates. In this post, we will demonstrate how to calculate simple life tables from data common in longitudinal clinical trials.</p>
-<p>Suppose we have patient data on enrollment start times (beginning of follow-up) and censoring or death times. For simplicity, instead of using R <em>date types</em>, we will represent start and end times with numeric integer. This set up is similar to our first post on <em>gaps and islands</em>.</p>
+<p>Life tables are common in actuarial sciences, bio-medical studies, and more generally in the field of survival analysis. They are used to track a dynamic population over time, one where individuals may enter and leave at different times, and they are important for computing <strong>at-risk</strong> rates. In this post, we will demonstrate how to compute simple life table summaries.</p>
+<p>Suppose we have patient data on enrollment start times and censoring or death times. For simplicity, instead of using R <em>date types</em>, we will represent start and end times as numeric integers. This set up is very similar to our first post on <em>gaps and islands</em>.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)</span>
@@ -212,59 +212,59 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <tbody>
 <tr class="odd">
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">150</td>
-<td style="text-align: right;">203</td>
+<td style="text-align: right;">105</td>
+<td style="text-align: right;">145</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">2</td>
-<td style="text-align: right;">157</td>
-<td style="text-align: right;">201</td>
+<td style="text-align: right;">167</td>
+<td style="text-align: right;">222</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">3</td>
-<td style="text-align: right;">55</td>
-<td style="text-align: right;">143</td>
+<td style="text-align: right;">56</td>
+<td style="text-align: right;">125</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">4</td>
-<td style="text-align: right;">65</td>
-<td style="text-align: right;">147</td>
+<td style="text-align: right;">116</td>
+<td style="text-align: right;">170</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">5</td>
-<td style="text-align: right;">179</td>
-<td style="text-align: right;">272</td>
+<td style="text-align: right;">87</td>
+<td style="text-align: right;">163</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">6</td>
-<td style="text-align: right;">23</td>
-<td style="text-align: right;">96</td>
+<td style="text-align: right;">177</td>
+<td style="text-align: right;">211</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">7</td>
-<td style="text-align: right;">164</td>
-<td style="text-align: right;">255</td>
+<td style="text-align: right;">103</td>
+<td style="text-align: right;">133</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">8</td>
-<td style="text-align: right;">116</td>
-<td style="text-align: right;">209</td>
+<td style="text-align: right;">57</td>
+<td style="text-align: right;">144</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">9</td>
-<td style="text-align: right;">11</td>
-<td style="text-align: right;">74</td>
+<td style="text-align: right;">23</td>
+<td style="text-align: right;">61</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">10</td>
-<td style="text-align: right;">165</td>
-<td style="text-align: right;">217</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">87</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<p>Roughly, we can visualize when new patients enter and when they leave (due to death or censoring or exiting our risk set). Each segment represents a unique patient and their time segment of observation.</p>
+<p>Roughly, we can visualize when new patients enter and when they leave (due to death or censoring or exiting our risk set). Each segment represents a unique patient and their time under observation.</p>
 <div class="cell page-columns page-full">
 <details>
 <summary>Code</summary>
@@ -294,10 +294,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<p>Our goal is to count over time the current number of patients under observation.</p>
-<section id="joining-and-cross-method" class="level2">
-<h2 class="anchored" data-anchor-id="joining-and-cross-method">Joining and cross method</h2>
-<p>In this method, we will highlight the merging operators <code>left_join</code> and <code>cross_join</code> (also known as <em>cartesian</em> joins).</p>
+<p><strong>Our goal is to count over time the current number of patients under observation.</strong></p>
+<section id="grid-method" class="level2">
+<h2 class="anchored" data-anchor-id="grid-method">Grid method</h2>
+<p>Our first solution will highlight the merging operators <code>left_join</code> and <code>cross_join</code> (also known as <em>cartesian</em> join).</p>
 <div class="callout callout-style-default callout-warning callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -311,7 +311,7 @@ Warning
 <p>Cartesian joins can be computationally intensive and slow!</p>
 </div>
 </div>
-<p>First, we pre-define a grid for time points of interest. Suppose we want to asses counts every 60 time units. The Cartesian join will match every row in the left table (our time point reference) to every row in the right table (our patient data). Then for each patient whose observation window intersects with our index time, we add one:</p>
+<p>First, we pre-define a grid of time points over which to compute our counts. Suppose we assess counts every 60 time units. In the code below, the cartesian join will match every row in the left table (our reference grid points) with every row in the right table (our patient data). Then we make an indicator for if the patient’s observation window intersects the grid point, and group by time and sum them up:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>survival_grid <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">xtime =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">500</span>, <span class="dv">60</span>))</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -340,19 +340,19 @@ Warning
 </tr>
 <tr class="even">
 <td style="text-align: right;">60</td>
-<td style="text-align: right;">58</td>
+<td style="text-align: right;">52</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">120</td>
-<td style="text-align: right;">70</td>
+<td style="text-align: right;">75</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">180</td>
-<td style="text-align: right;">66</td>
+<td style="text-align: right;">69</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">240</td>
-<td style="text-align: right;">21</td>
+<td style="text-align: right;">26</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">300</td>
@@ -362,10 +362,23 @@ Warning
 </table>
 </div>
 </div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Within the cartesian join, observe each patient can only contribute one count towards each grid time point.</p>
+</div>
+</div>
 </section>
-<section id="map-to-the-rescue" class="level2 page-columns page-full">
-<h2 class="anchored" data-anchor-id="map-to-the-rescue">Map to the rescue</h2>
-<p>In this method, we do a rolling count moving through each patient. Eventually we subset on unique entry times where a change in the total population can occur. In particular, at each unique entry time when one or more new patients enroll, we add up the total number of enrollees (a simple row count works here as we cycle through the patient dataset). But we must adjust at each entry the total number lost to death or censoring up to that point. Since more than one patient may enter at the same time, the final numbers in our rolling count appears last by entry times provided we start counting in order from the first entry.</p>
+<section id="approximately-continuous-method-map-to-the-rescue" class="level2 page-columns page-full">
+<h2 class="anchored" data-anchor-id="approximately-continuous-method-map-to-the-rescue">(approximately) Continuous method – Map to the rescue</h2>
+<p>In this method, we do a rolling count moving through each patient. Eventually we subset on unique entry times where a change in the total population can possibly occur. In particular, at each entry time when one or more new patients enroll, we add up the total number of enrollees (a simple row count works here as we cycle through the patient data set). But we must adjust at each entry the total number lost to death or censoring up to that point. As more than one patient may enter at the same time, the final counts appear last when grouped by entry times and provided we start counting in order beginning from the earliest entry.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>N_under_observation <span class="ot">&lt;-</span> </span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>patient_fup_data <span class="sc">|&gt;</span> </span>
@@ -406,6 +419,7 @@ Warning
 </div>
 </div>
 </div>
+<p>There is a caveat with our solution. We are not accounting for exit times that occur <em>between</em> two successive entry times. This might be okay as the total lost will be factored in at the later entry date, but if the time until a new enrollment is long, it can be misleading of the population size at risk, particularly if there was a large drop-off somewhere in-between. Related to this, we are also not seeing when everyone exits (population at risk becomes zero). These should be kept in mind when interpreting and communicating the information presented in the figure.</p>
 
 
 </section>
