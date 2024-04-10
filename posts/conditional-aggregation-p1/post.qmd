@@ -1,0 +1,140 @@
+---
+title: 'Exercises in Counting'
+date: '2024-04-10'
+description: 'Application to survival analysis' 
+execute: 
+  message: false
+  warning: false
+editor_options: 
+  chunk_output_type: console
+code-annotations: true
+---
+
+# Introduction 
+
+Life tables are common in actuarial sciences, bio-medical studies, and more generally in the field of survival analysis. They are used to track a dynamic population under observation, one where individuals may enter and leave at different times, and important for computing **at-risk** rates. In this post, we will demonstrate how to calculate simple life tables from data common in longitudinal clinical trials.
+
+Suppose we have patient data on enrollment start times (beginning of follow-up) and censoring or death times. For simplicity, instead of using R *date types*, we will represent start and end times with numeric integer. This set up is similar to our first post on *gaps and islands*.
+
+```{r}
+library(tidyverse)
+library(knitr)
+library(ggplot2)
+
+patient_fup_data <- 
+  tibble(
+    ID             = 1:200, 
+    startFollowUp  = c(sample(1:200, 200, replace = TRUE)),
+    endDeathCensor = startFollowUp + sample(30:100, 200, replace = TRUE)  
+  )
+
+
+head(patient_fup_data, n = 10) |> kable()
+
+```
+
+Roughly, we can visualize when new patients enter and when they leave (due to death or censoring or exiting our risk set). Each segment represents a unique patient and their time segment of observation.
+
+```{r}
+#| code-fold: true 
+#| fig-cap: "Observation time intervals by patients"
+#| fig-cap-location: margin
+#| fig-width: 15
+#| fig-height: 7
+
+ggplot(patient_fup_data |> filter(ID <= 30)) +
+  geom_linerange(
+    aes(xmin = startFollowUp, xmax = endDeathCensor, y = ID)
+    , linewidth = 1) +
+  
+  theme_bw() +
+  xlab("Entry / Exit") +
+  ylab("Patient ID") + 
+  
+  theme(
+    axis.text.x = element_text(size = 16, angle = 45),
+    strip.text = element_text(size = 18), 
+    axis.title.x = element_text(size = 24),
+    axis.title.y = element_text(size = 24),
+    legend.position = 'right'
+  )
+
+
+```
+
+Our goal is to count over time the current number of patients under observation.
+
+## Joining and cross method
+
+In this method, we will highlight the merging operators `left_join` and `cross_join` (also known as *cartesian* joins).
+
+::: callout-warning
+Cartesian joins can be computationally intensive and slow!
+:::
+
+First, we pre-define a grid for time points of interest. Suppose we want to asses counts every 60 time units. The Cartesian join will match every row in the left table (our time point reference) to every row in the right table (our patient data). Then for each patient whose observation window intersects with our index time, we add one: 
+
+```{r}
+
+survival_grid <- tibble(xtime = seq(0, 500, 60))
+
+surv_grid_xpatients <- survival_grid |> cross_join(patient_fup_data)
+
+survival_grid_counts <- 
+surv_grid_xpatients |> 
+  mutate(count = startFollowUp <= xtime & endDeathCensor >= xtime) |> 
+  group_by(xtime) |> 
+  summarise(count = sum(count))
+
+
+head(survival_grid_counts) |> kable()
+```
+
+
+## Map to the rescue 
+
+In this method, we do a rolling count moving through each patient. Eventually we subset on unique entry times where a change in the total population can occur. In particular, at each unique entry time when one or more new patients enroll, we add up the total number of enrollees (a simple row count works here as we cycle through the patient dataset). But we must adjust at each entry the total number lost to death or censoring up to that point. Since more than one patient may enter at the same time, the final numbers in our rolling count appears last by entry times provided we start counting in order from the first entry. 
+
+```{r}
+
+N_under_observation <- 
+patient_fup_data |> 
+  arrange(startFollowUp) |> 
+  
+  mutate(
+    Nenroll = row_number(), 
+    Nlost   = map_dbl(startFollowUp, \(.x) sum(endDeathCensor <= .x)), 
+    N_obs   = Nenroll - Nlost 
+  ) |> 
+  
+  group_by(startFollowUp) |> 
+  slice(n()) 
+
+```
+
+Finally, we visualize the change in our patient population size over time. 
+
+```{r}
+#| code-fold: true 
+#| fig-cap: "Population size over time"
+#| fig-cap-location: margin
+#| fig-width: 15
+#| fig-height: 7
+#| 
+ggplot(N_under_observation, aes(x = startFollowUp, y = N_obs)) + 
+  geom_step(size = 1) + 
+  xlab("Time") + 
+  ylab("Number under observation") + 
+  theme_bw() + 
+  theme(
+    axis.text.x = element_text(size = 16, angle = 45),
+    strip.text = element_text(size = 18), 
+    axis.title.x = element_text(size = 24),
+    axis.title.y = element_text(size = 24),
+    legend.position = 'right'
+  )
+```
+
+
+
+
