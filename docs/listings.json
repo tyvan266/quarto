@@ -2,9 +2,12 @@
   {
     "listing": "/blog.html",
     "items": [
+      "/posts/conditional-aggregation-p1/post.html",
+      "/posts/event-freqs/post.html",
+      "/posts/map-overlapping-dates/post.html",
+      "/posts/map-ts-btc/post.html",
       "/posts/intro-purrr-map/post.html",
-      "/posts/gaps-and-islands/post.html",
-      "/posts/conditional-aggregation-p1/post.html"
+      "/posts/gaps-and-islands/post.html"
     ]
   }
 ]
