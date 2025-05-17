@@ -1,6 +1,5 @@
 ---
 title: 'Exercises in Counting'
-date: '2024-04-10'
 description: 'Application to survival analysis' 
 execute: 
   message: false
@@ -8,6 +7,7 @@ execute:
 editor_options: 
   chunk_output_type: console
 code-annotations: true
+theme: journal
 ---
 
 # Introduction
@@ -72,7 +72,7 @@ Our first solution will highlight the merging operators `left_join` and `cross_j
 Cartesian joins can be computationally intensive and slow!
 :::
 
-First, we pre-define a grid of time points over which to compute our counts. Suppose we assess counts every 60 time units. In the code below, the cartesian join will match every row in the left table (our reference grid points) with every row in the right table (our patient data). Then we make an indicator for if the patient's observation window intersects the grid point, and group by time and sum them up: 
+First, we pre-define a grid of time points over which to compute our counts. Suppose we assess counts every 60 time units. In the code below, the cartesian join will match every row in the left table (our reference grid points) with every row in the right table (our patient data). Then we make an indicator for if the patient's observation window intersects the grid point, and group by time and sum them up:
 
 ```{r}
 
@@ -91,7 +91,7 @@ head(survival_grid_counts) |> kable()
 ```
 
 ::: callout-note
-Within the cartesian join, observe each patient can only contribute one count towards each grid time point. 
+Within the cartesian join, observe each patient can only contribute one count towards each grid time point.
 :::
 
 ## (approximately) Continuous method -- Map to the rescue
@@ -138,7 +138,4 @@ ggplot(N_under_observation, aes(x = startFollowUp, y = N_obs)) +
   )
 ```
 
-There is a caveat with our solution. We are not accounting for exit times that occur *between* two successive entry times. This might be okay as the total lost will be factored in at the later entry date, but if the time until a new enrollment is long, it can be misleading of the population size at risk, particularly if there was a large drop-off somewhere in-between. Related to this, we are also not seeing when everyone exits (population at risk becomes zero). These should be kept in mind when interpreting and communicating the information presented in the figure.  
-
-
-
+There is a caveat with our solution. We are not accounting for exit times that occur *between* two successive entry times. This might be okay as the total lost will be factored in at the later entry date, but if the time until a new enrollment is long, it can be misleading of the population size at risk, particularly if there was a large drop-off somewhere in-between. Related to this, we are also not seeing when everyone exits (population at risk becomes zero). These should be kept in mind when interpreting and communicating the information presented in the figure.
