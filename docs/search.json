@@ -60,7 +60,7 @@
     "href": "blog.html",
     "title": "Sieving Data, A Quarto Blog",
     "section": "",
-    "text": "Exercises in Counting\n\n\n\n\n\nApplication to survival analysis\n\n\n\n\n\n\nApr 10, 2024\n\n\n\n\n\n\n  \n\n\n\n\nDoing iteration with map (when vectorized functions are not enough)\n\n\n\n\n\nApplication to window functions and computing composite scores with missing values\n\n\n\n\n\n\nOct 11, 2023\n\n\n\n\n\n\n  \n\n\n\n\nThe Gaps and Islands Problem\n\n\n\n\n\nAlso known as the overlapping-date-ranges problem, where we study duration data to identify coverage intervals (or, holes)\n\n\n\n\n\n\nOct 4, 2023\n\n\n\n\n\n\nNo matching items"
+    "text": "Exercises in Counting\n\n\n\n\n\nApplication to survival analysis\n\n\n\n\n\nApr 10, 2024\n\n\n\n\n\n\n\n\n\n\n\n\nDoing iteration with map (when vectorized functions are not enough)\n\n\n\n\n\nApplication to window functions and computing composite scores with missing values\n\n\n\n\n\nOct 11, 2023\n\n\n\n\n\n\n\n\n\n\n\n\nThe Gaps and Islands Problem\n\n\n\n\n\nAlso known as the overlapping-date-ranges problem, where we study duration data to identify coverage intervals (or, holes)\n\n\n\n\n\nOct 4, 2023\n\n\n\n\n\n\nNo matching items"
   },
   {
     "objectID": "posts/intro-purrr-map/post.html",
